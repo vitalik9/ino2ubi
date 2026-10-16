@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f1419">
+  <meta name="description" content="Конвертер Arduino (.ino) в пользовательские блоки FLProg (.ubi). Работает в браузере, без сервера.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ino2ubi">
+  <title>ino2ubi — конвертер Arduino в блоки FLProg</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-row">
+        <div>
+          <h1>ino2ubi</h1>
+          <p class="tagline">Конвертер Arduino (.ino) в пользовательские блоки FLProg (.ubi)</p>
+          <p class="version"><strong>Цель: ESP32 · Arduino Core 2.0.17 · FLProg 8 Basic</strong></p>
+          <p class="version">Версия <span id="versionSpan">—</span> (работает в браузере, без сервера)</p>
+          <p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
+        </div>
+        <button type="button" id="btnHelp" class="btn btn-secondary" title="Справка по работе">Справка</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="panel code-panel">
+        <div class="panel-head">
+          <h2>Код Arduino</h2>
+          <div class="actions">
+            <input type="file" id="fileIno" accept=".ino,.txt,.cpp,.c,.h,.hpp,.json" hidden>
+            <button type="button" id="btnLoad" class="btn btn-secondary">Открыть файл / проект</button>
+            <button type="button" id="btnSaveProject" class="btn btn-secondary" title="Сохранить настройки ролей и редактирование как проект .i2u.json">Сохранить проект</button>
+            <button type="button" id="btnClear" class="btn btn-secondary">Очистить</button>
+            <button type="button" id="btnParse" class="btn btn-primary">Парсить код</button>
+            <button type="button" id="btnRemoteXY" class="btn btn-remotexy" title="Разобрать Arduino-скетч RemoteXY и заполнить вкладки без скачивания .ubi">Парсить RemoteXY</button>
+            <button type="button" id="btnCheckEsp32" class="btn btn-secondary">Проверить ESP32</button>
+          </div>
+        </div>
+        <textarea id="codeInput" class="code-input" placeholder="Вставьте или загрузите Arduino-скетч (setup, loop, переменные, функции)…"></textarea>
+      </section>
+
+      <section class="panel right-panel">
+        <div class="tabs">
+          <button type="button" class="tab active" data-tab="variables">Переменные</button>
+          <button type="button" class="tab" data-tab="functions">Функции</button>
+        </div>
+
+        <div id="tabVariables" class="tab-content active">
+          <p class="hint">Найденные переменные и #define. Двойной клик по строке — редактирование.</p>
+          <div class="table-wrap">
+            <table class="data-table" id="varTable">
+              <thead>
+                <tr>
+                  <th>Имя</th>
+                  <th>Тип</th>
+                  <th>Роль</th>
+                  <th>Псевдоним</th>
+                  <th>По умолчанию</th>
+                </tr>
+              </thead>
+              <tbody id="varBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="tabFunctions" class="tab-content">
+          <p class="hint">Обычный код: пользовательские функции (двойной клик — редактирование). RemoteXY: просмотр автоматически создаваемых setup() и loop(); для изменения логики редактируйте исходный скетч.</p>
+          <div class="table-wrap">
+            <table class="data-table" id="funcTable">
+              <thead>
+                <tr>
+                  <th>Имя</th>
+                  <th>Возврат</th>
+                  <th>Параметры</th>
+                  <th>Тело</th>
+                </tr>
+              </thead>
+              <tbody id="funcBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="settings">
+          <h3>Настройки блока</h3>
+          <div class="field">
+            <label for="blockName">Название блока</label>
+            <input type="text" id="blockName" value="Custom Block" placeholder="Имя блока в FLProg">
+          </div>
+          <div class="field">
+            <label for="blockDesc">Описание блока</label>
+            <textarea id="blockDesc" rows="3" placeholder="Описание (подсказка в FLProg)">Автоматически сгенерированный блок</textarea>
+          </div>
+          <div id="remoteXYEepromBox" class="field" hidden>
+            <label id="remoteXYEepromOffsetLabel" for="remoteXYEepromOffset">RemoteXY EEPROM — начало области (байт)</label>
+            <input id="remoteXYEepromOffset" type="number" min="0" max="4095" step="1" value="0">
+            <p id="remoteXYEepromStatus" class="hint"></p>
+            <p class="hint">Если другие блоки FLProg используют EEPROM, согласуйте диапазоны адресов и инициализацию EEPROM.begin().</p>
+          </div>
+          <div class="field checkbox-field">
+            <input type="checkbox" id="enableInput" value="1">
+            <label for="enableInput">Вход En (условие выполнения кода в Loop: if(En))</label>
+          </div>
+        </div>
+
+        <button type="button" id="btnGenerate" class="btn btn-accent btn-block">Сгенерировать .ubi и скачать</button>
+        <p class="hint">Совместимость с исходниками оригинального ino2ubi: .ino, .txt, .cpp и проектами .i2u.json; итоговый .ubi предназначен для Code-блоков FLProg 8 (Basic).</p>
+        <p id="status" class="status"></p>
+        <div id="esp32Diagnostics" class="esp32-diagnostics" role="region" aria-label="Результаты проверки кода" aria-live="polite" hidden></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Справка -->
+  <div id="modalHelp" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-box modal-help">
+      <h3>Справка по работе с конвертером</h3>
+      <div class="help-content">
+        <h4>Что делает конвертер</h4>
+        <p><strong>Профиль сборки:</strong> ESP32, Espressif Arduino Core 2.0.17 (API 2.x), обычный FLProg 8. Проверка не заменяет сборку на реальной плате.</p>
+        <p>ino2ubi преобразует Arduino-скетчи (.ino) в пользовательские блоки (.ubi) для программы FLProg. Блок можно импортировать в FLProg и использовать как обычный пользовательский блок.</p>
+
+        <h4>Пошаговая инструкция</h4>
+        <ol>
+          <li><strong>Загрузите .ino или .i2u.json</strong> (кнопка «Открыть файл / проект») или вставьте код Arduino в поле слева.</li>
+          <li>Нажмите <strong>«Парсить код»</strong> — конвертер извлечёт переменные и функции и сразу выведет внизу ошибки, их строки и рекомендации по исправлению.</li>
+          <li>Во вкладках <strong>«Переменные»</strong> и <strong>«Функции»</strong> при необходимости отредактируйте настройки (двойной клик по строке).</li>
+          <li>Задайте <strong>название</strong> и <strong>описание</strong> блока.</li>
+          <li>Нажмите <strong>«Сгенерировать .ubi и скачать»</strong> — файл сохранится на компьютер.</li>
+          <li>Импортируйте .ubi в FLProg (меню библиотеки блоков).</li>
+        </ol>
+
+        <h4>Роли переменных</h4>
+        <ul>
+          <li><strong>variable</strong> — внутренняя переменная, не отображается на блоке.</li>
+          <li><strong>input</strong> — вход (слева на блоке), получает данные от других блоков.</li>
+          <li><strong>output</strong> — выход (справа на блоке), передаёт данные другим блокам.</li>
+          <li><strong>parameter</strong> — настраиваемый параметр, задаётся в свойствах блока.</li>
+        </ul>
+
+        <h4>Определение ролей в коде</h4>
+        <p>Роли можно задать комментариями после объявления переменной:</p>
+        <pre>int sensorValue = 0;  // in — вход
+int result = 0;       // out — выход
+int threshold = 100;  // par — параметр</pre>
+        <p>Для старых файлов поддерживается <code>#define</code> с <code>//par</code>, но числовые <code>#define</code> в профиле FLProg 8 запрещены: они могут вызвать конфликт имён при генерации.</p>
+        <p>Подсказки внизу редактора учитывают назначение макроса: для задержки <code>#define MIN_PRD 5000</code> предлагается <code>5000UL</code> или <code>unsigned long</code>, а для размеров массивов — конкретная длина в квадратных скобках.</p>
+        <h4>Безопасные массивы FLProg 8</h4>
+        <p>Не используйте <code>#define BUFFER_SIZE 32</code>, <code>eventState[BUFFER_SIZE]</code> или вычисляемый размер <code>[2*16]</code>. Задавайте длину только числом, например:</p>
+        <pre>static bool eventState[32] = {false}; // variable
+static uint32_t eventTime[32] = {0};  // variable
+uint8_t bufferSize = 32;             // variable</pre>
+        <p>Для управления логическим пределом используйте отдельную переменную <code>bufferSize</code> и не допускайте значений больше фактической длины массива. Проверка массива выполняется перед экспортом.</p>
+
+        <h4>Код ESP32 2.0.17</h4>
+        <p>Для ШИМ: <code>ledcSetup(channel, freq, resolution)</code>, затем <code>ledcAttachPin(pin, channel)</code> и <code>ledcWrite(channel, duty)</code>. Не используйте API 3.x: <code>ledcAttach</code>, <code>timerAlarm</code>, <code>esp_now_recv_info_t</code>.</p>
+        <h4>RemoteXY (экспериментально)</h4>
+        <p>Для Arduino-скетча RemoteXY нажмите «Парсить код» или «Парсить RemoteXY». В «Переменные» появятся контакты FLProg; двойной клик позволяет изменить только подпись контакта. Во вкладке «Функции» отображаются автоматически генерируемые setup() и loop() только для просмотра. Скачивание выполняется исключительно отдельной кнопкой «Сгенерировать .ubi и скачать».</p>
+        <p>Wi-Fi подключает FLProg; учётные данные из RemoteXY не экспортируются. Один блок RemoteXY на проект. Для работы требуется библиотека RemoteXY 4.1.11.</p>
+        <p>EEPROM включается автоматически только при наличии специальных отметок «Сохранять в EEPROM» в конфигурации редактора RemoteXY (новый формат 254/V21). Старый формат 255/V19 таких отметок не содержит: включите сохранение для нужных элементов и снова получите Arduino-код в редакторе. EEPROM.h добавляется перед RemoteXY.h, память ESP32 резервируется через EEPROM.begin(). При совместном использовании EEPROM с другими блоками FLProg проверьте занятые адреса и повторную инициализацию.</p>
+        <h4>Старые файлы оригинального конвертера</h4>
+        <p>Поддерживаются .ino/.txt с маркерами // in, // out, // par и // input, // output, // parameter. Чтобы сохранить ручные настройки входов и выходов, используйте «Сохранить проект», затем открывайте .i2u.json.</p>
+        <h4>Примечания</h4>
+        <ul>
+          <li>Комментарий в начале скетча (<code>//</code> или <code>/* */</code>) используется как описание блока.</li>
+          <li>Функции <code>setup()</code> и <code>loop()</code> автоматически помещаются в соответствующие секции блока.</li>
+          <li>Дополнительные функции отображаются во вкладке «Функции»; тело можно редактировать двойным кликом.</li>
+          <li>Опция «Вход En» оборачивает код в <code>loop</code> в условие <code>if(En) { … }</code> — блок будет выполняться только при активном входе En.</li>
+        </ul>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="modalHelpClose">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEdit" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-box">
+      <h3 id="modalEditTitle">Редактирование</h3>
+      <div id="modalEditBody"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modalCancel">Отмена</button>
+        <button type="button" class="btn btn-primary" id="modalSave">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="constants.js"></script>
+  <script src="parser.js"></script>
+  <script src="generator.js"></script>
+  <script src="compat.js"></script>
+  <script src="esp32.js"></script>
+  <script src="diagnostics.js"></script>
+  <script src="remotexy.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
