@@ -43,6 +43,21 @@
   const blockName = document.getElementById('blockName');
   const blockDesc = document.getElementById('blockDesc');
   const enableInput = document.getElementById('enableInput');
+  const exportMode = document.getElementById('exportMode');
+  const professionalSettings = document.getElementById('professionalSettings');
+  // Professional uses the same source editor as Basic; no separate header input.
+
+  const formatHelp = document.getElementById('formatHelp');
+  function refreshExportMode() {
+    const professional = exportMode.value === 'professional';
+    professionalSettings.hidden = !professional;
+    btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
+    formatHelp.textContent = professional ?
+      'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 8.' :
+      'Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.';
+  }
+  exportMode.addEventListener('change', refreshExportMode);
+  refreshExportMode();
   const remoteXYEepromBox = document.getElementById('remoteXYEepromBox');
   const remoteXYEepromOffset = document.getElementById('remoteXYEepromOffset');
   const remoteXYEepromStatus = document.getElementById('remoteXYEepromStatus');
@@ -222,6 +237,10 @@
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;
+        exportMode.value = data.settings.exportMode === 'professional' ? 'professional' : 'basic';
+
+
+        refreshExportMode();
         parsedSource = data.code;
         if (/\bRemoteXY_CONF_PROGMEM\b/.test(data.code)) {
           const savedAliases = {};
@@ -305,7 +324,8 @@
     }
     const project = compat.makeProject(codeInput.value, state, {
       blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked,
-      remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0'
+      remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
+      exportMode: exportMode.value
     });
     const filename = (blockName.value || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.i2u.json';
     downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json;charset=utf-8' }), filename);
@@ -571,6 +591,41 @@
     }
     if (!parsedSource || parsedSource !== code) {
       setStatus('Исходный код изменился или ещё не разобран: нажмите «Парсить код».', true);
+      return;
+    }
+    if (exportMode.value === 'professional') {
+      if (remoteXYMode) {
+        setStatus('RemoteXY в формате Code Professional пока не поддерживается; используйте Code Basic.', true);
+        return;
+      }
+      const check = runChecks(code, state);
+      showEsp32Diagnostics(check, code);
+      if (check.errors.length) { setStatus('Исправьте ошибки перед экспортом.', true); return; }
+      btnGenerate.disabled = true;
+      setStatus('Генерация Code Professional…');
+      Promise.resolve(window.ino2ubiProfessionalTemplate).then(function (template) {
+        if (!template) throw new Error('Шаблон Code Professional не загружен.');
+        const result = window.ino2ubiProfessional.build({
+          template, name:blockName.value.trim()||'Custom Block', description:blockDesc.value,
+          state, source:code, enableInput:enableInput.checked,
+          setupCode: window.extractFunctionBody(code,'setup'),
+          loopCode: window.extractFunctionBody(code,'loop'),
+          additionalHeader:'', additionalHeaderFilename:''
+        });
+        const integrity = compat.inspectGeneratedXml(result.xml);
+        if (!integrity.valid) throw new Error('Повреждены SIXX-ссылки: ' + JSON.stringify(integrity));
+        if (result.hpp) {
+          throw new Error('Блоку требуется собственная библиотека .hpp; прямой экспорт одного .ubi невозможен без неё.');
+        }
+        const blob = new Blob([window.ino2ubiProfessional.utf16le(result.xml.replace(/\r?\n/g,'\r\n'))], {type:'application/octet-stream'});
+        downloadBlob(blob, result.filename + '.ubi');
+        setStatus('Создан Code Professional .ubi.'+
+          (result.dependencies.length?' Используемые внешние библиотеки (проверьте их наличие в FLProg): '+result.dependencies.join(', ')+'.':'')+
+          ' Проверьте импорт и компиляцию в FLProg 8.');
+      }).catch(function (e) {
+        setStatus('Ошибка Code Professional: '+e.message,true);
+        showEsp32Diagnostics({errors: [e.message],warnings: []},code);
+      }).finally(function () {btnGenerate.disabled=false;});
       return;
     }
     if (remoteXYMode) {

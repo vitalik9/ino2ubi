@@ -131,3 +131,7 @@ body {
 .diagnostic-location-unknown { display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; }
 .diagnostic-advice { font-size: 0.82rem; color: var(--text); margin: 6px 0 0; }
 .diagnostic-ok { margin: 8px 0 0; color: var(--text-muted); }
+
+.mode-select { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:.55rem; border-radius:6px; }
+.professional-settings {padding:.8rem;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;}
+.professional-settings textarea {font-family:var(--font);font-size:.8rem;}

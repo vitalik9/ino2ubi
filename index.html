@@ -42,7 +42,7 @@
             <button type="button" id="btnCheckEsp32" class="btn btn-secondary">Проверить ESP32</button>
           </div>
         </div>
-        <textarea id="codeInput" class="code-input" placeholder="Вставьте или загрузите Arduino-скетч (setup, loop, переменные, функции)…"></textarea>
+        <textarea id="codeInput" class="code-input" placeholder="Вставьте Arduino-скетч (setup, loop, переменные, функции)…"></textarea>
       </section>
 
       <section class="panel right-panel">
@@ -102,6 +102,16 @@
             <p id="remoteXYEepromStatus" class="hint"></p>
             <p class="hint">Если другие блоки FLProg используют EEPROM, согласуйте диапазоны адресов и инициализацию EEPROM.begin().</p>
           </div>
+          <div class="field">
+            <label for="exportMode">Формат экспорта FLProg 8</label>
+            <select id="exportMode" class="mode-select">
+              <option value="basic">Code Basic — стандартный, проверенный</option>
+              <option value="professional">Code Professional — экспериментальный</option>
+            </select>
+          </div>
+          <div id="professionalSettings" class="professional-settings" hidden>
+            <p class="hint">Один исходный скетч для обоих форматов. Код, помещающийся в UBI, остаётся внутри блока. Внешние заголовки проверяются как зависимости; отсутствующие библиотеки автоматически не выдумываются.</p>
+          </div>
           <div class="field checkbox-field">
             <input type="checkbox" id="enableInput" value="1">
             <label for="enableInput">Вход En (условие выполнения кода в Loop: if(En))</label>
@@ -109,7 +119,7 @@
         </div>
 
         <button type="button" id="btnGenerate" class="btn btn-accent btn-block">Сгенерировать .ubi и скачать</button>
-        <p class="hint">Совместимость с исходниками оригинального ino2ubi: .ino, .txt, .cpp и проектами .i2u.json; итоговый .ubi предназначен для Code-блоков FLProg 8 (Basic).</p>
+        <p id="formatHelp" class="hint">Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.</p>
         <p id="status" class="status"></p>
         <div id="esp32Diagnostics" class="esp32-diagnostics" role="region" aria-label="Результаты проверки кода" aria-live="polite" hidden></div>
       </section>
@@ -195,6 +205,8 @@ uint8_t bufferSize = 32;             // variable</pre>
   <script src="constants.js"></script>
   <script src="parser.js"></script>
   <script src="generator.js"></script>
+  <script src="professional.js"></script>
+  <script src="professional-template-data.js"></script>
   <script src="compat.js"></script>
   <script src="esp32.js"></script>
   <script src="diagnostics.js"></script>

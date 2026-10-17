@@ -1,0 +1,1701 @@
+<sixx.object sixx.id="0" sixx.type="UserCodeMultiBlockBlockLibraryElement" sixx.env="Arduino">
+  <sixx.object sixx.id="1" sixx.name="mainBlock" sixx.type="UserCodeMultiBlock" sixx.env="Arduino">
+    <sixx.object sixx.id="2" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">127055513</sixx.object>
+    <sixx.object sixx.id="3" sixx.name="mainParametrs" sixx.type="UserCodeMultiBlockMainParametrs" sixx.env="Arduino">
+      <sixx.object sixx.id="4" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">240900964</sixx.object>
+      <sixx.object sixx.id="5" sixx.name="folderName" sixx.type="String" sixx.env="Core">06.AHTxx Датчик температуры и влажности</sixx.object>
+      <sixx.object sixx.id="6" sixx.name="info" sixx.type="String" sixx.env="Core" />
+    </sixx.object>
+    <sixx.object sixx.id="7" sixx.name="codeData" sixx.type="UserCodeMultiBlockCodeData" sixx.env="Arduino">
+      <sixx.object sixx.id="8" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">260890526</sixx.object>
+      <sixx.object sixx.id="9" sixx.name="declareSection" sixx.type="UserCodeMultiBlockCodeDataDeclareSection" sixx.env="Arduino">
+        <sixx.object sixx.id="10" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">122844506</sixx.object>
+        <sixx.object sixx.id="11" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="12" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">82370030</sixx.object>
+          <sixx.object sixx.id="13" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.id="14" sixx.name="position" sixx.type="Symbol" sixx.env="Core">start</sixx.object>
+          <sixx.object sixx.id="15" sixx.name="section" sixx.type="Symbol" sixx.env="Core">declare</sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="16" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="17" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">83541524</sixx.object>
+          <sixx.object sixx.id="18" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.id="19" sixx.name="position" sixx.type="Symbol" sixx.env="Core">stop</sixx.object>
+          <sixx.object sixx.name="section" sixx.idref="15" />
+        </sixx.object>
+        <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+        <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+      </sixx.object>
+      <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+      <sixx.object sixx.id="20" sixx.name="setupSection" sixx.type="UserCodeMultiBlockCodeDataSetupSection" sixx.env="Arduino">
+        <sixx.object sixx.id="21" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">171526818</sixx.object>
+        <sixx.object sixx.id="22" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="23" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">62404994</sixx.object>
+          <sixx.object sixx.id="24" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="position" sixx.idref="14" />
+          <sixx.object sixx.id="25" sixx.name="section" sixx.type="Symbol" sixx.env="Core">setup</sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="26" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="27" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">115261307</sixx.object>
+          <sixx.object sixx.id="28" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="position" sixx.idref="19" />
+          <sixx.object sixx.name="section" sixx.idref="25" />
+        </sixx.object>
+        <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+        <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+      </sixx.object>
+      <sixx.object sixx.id="29" sixx.name="loopSection" sixx.type="UserCodeMultiBlockCodeDataLoopSection" sixx.env="Arduino">
+        <sixx.object sixx.id="30" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">229246990</sixx.object>
+        <sixx.object sixx.id="31" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="32" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">18720325</sixx.object>
+          <sixx.object sixx.id="33" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="position" sixx.idref="14" />
+          <sixx.object sixx.id="34" sixx.name="section" sixx.type="Symbol" sixx.env="Core">loop</sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="35" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="36" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">141356036</sixx.object>
+          <sixx.object sixx.id="37" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="position" sixx.idref="19" />
+          <sixx.object sixx.name="section" sixx.idref="34" />
+        </sixx.object>
+        <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+        <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+        <sixx.object sixx.id="38" sixx.name="inseptPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="39" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">14813915</sixx.object>
+          <sixx.object sixx.id="40" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.id="41" sixx.name="position" sixx.type="Symbol" sixx.env="Core">insert</sixx.object>
+          <sixx.object sixx.name="section" sixx.idref="34" />
+        </sixx.object>
+      </sixx.object>
+      <sixx.object sixx.id="42" sixx.name="functionSection" sixx.type="UserCodeMultiBlockCodeDataFunctionSection" sixx.env="Arduino">
+        <sixx.object sixx.id="43" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">46351639</sixx.object>
+        <sixx.object sixx.id="44" sixx.name="codePart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+          <sixx.object sixx.id="45" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">183508639</sixx.object>
+          <sixx.object sixx.id="46" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+          <sixx.object sixx.id="47" sixx.name="position" sixx.type="Symbol" sixx.env="Core">neitral</sixx.object>
+          <sixx.object sixx.id="48" sixx.name="section" sixx.type="Symbol" sixx.env="Core">function</sixx.object>
+        </sixx.object>
+        <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+        <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+      </sixx.object>
+      <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+    </sixx.object>
+    <sixx.object sixx.id="49" sixx.name="blockInstancesLibrary" sixx.type="UserCodeMultiBlockBlockInstancesLibrary" sixx.env="Arduino">
+      <sixx.object sixx.id="50" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">244238588</sixx.object>
+      <sixx.object sixx.id="51" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+        <sixx.object sixx.id="52" sixx.type="UserCodeMultiBlockBlockInstance" sixx.env="Arduino">
+          <sixx.object sixx.id="53" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">160308279</sixx.object>
+          <sixx.object sixx.id="54" sixx.name="name" sixx.type="String" sixx.env="Core">02.SHT3x(T,H) Датчик температуры,влажности</sixx.object>
+          <sixx.object sixx.id="55" sixx.name="label" sixx.type="String" sixx.env="Core">SHT3x</sixx.object>
+          <sixx.object sixx.id="56" sixx.name="commonCodeData" sixx.type="UserCodeMultiBlockCodeData" sixx.env="Arduino">
+            <sixx.object sixx.id="57" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">247034594</sixx.object>
+            <sixx.object sixx.id="58" sixx.name="declareSection" sixx.type="UserCodeMultiBlockCodeDataDeclareSection" sixx.env="Arduino">
+              <sixx.object sixx.id="59" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">184958903</sixx.object>
+              <sixx.object sixx.id="60" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="61" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">98124223</sixx.object>
+                <sixx.object sixx.id="62" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="14" />
+                <sixx.object sixx.name="section" sixx.idref="15" />
+              </sixx.object>
+              <sixx.object sixx.id="63" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="64" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">27506738</sixx.object>
+                <sixx.object sixx.id="65" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="19" />
+                <sixx.object sixx.name="section" sixx.idref="15" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            </sixx.object>
+            <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+            <sixx.object sixx.id="66" sixx.name="setupSection" sixx.type="UserCodeMultiBlockCodeDataSetupSection" sixx.env="Arduino">
+              <sixx.object sixx.id="67" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">257127294</sixx.object>
+              <sixx.object sixx.id="68" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="69" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">232847327</sixx.object>
+                <sixx.object sixx.id="70" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="14" />
+                <sixx.object sixx.name="section" sixx.idref="25" />
+              </sixx.object>
+              <sixx.object sixx.id="71" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="72" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">100377624</sixx.object>
+                <sixx.object sixx.id="73" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="19" />
+                <sixx.object sixx.name="section" sixx.idref="25" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            </sixx.object>
+            <sixx.object sixx.id="74" sixx.name="loopSection" sixx.type="UserCodeMultiBlockCodeDataLoopSection" sixx.env="Arduino">
+              <sixx.object sixx.id="75" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">180210548</sixx.object>
+              <sixx.object sixx.id="76" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="77" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">125267318</sixx.object>
+                <sixx.object sixx.id="78" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="14" />
+                <sixx.object sixx.name="section" sixx.idref="34" />
+              </sixx.object>
+              <sixx.object sixx.id="79" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="80" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">136392676</sixx.object>
+                <sixx.object sixx.id="81" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="19" />
+                <sixx.object sixx.name="section" sixx.idref="34" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+              <sixx.object sixx.id="82" sixx.name="inseptPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="83" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">174404970</sixx.object>
+                <sixx.object sixx.id="84" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="41" />
+                <sixx.object sixx.name="section" sixx.idref="34" />
+              </sixx.object>
+            </sixx.object>
+            <sixx.object sixx.id="85" sixx.name="functionSection" sixx.type="UserCodeMultiBlockCodeDataFunctionSection" sixx.env="Arduino">
+              <sixx.object sixx.id="86" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">194767498</sixx.object>
+              <sixx.object sixx.id="87" sixx.name="codePart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="88" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">133930939</sixx.object>
+                <sixx.object sixx.id="89" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="47" />
+                <sixx.object sixx.name="section" sixx.idref="48" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            </sixx.object>
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="90" sixx.name="codeData" sixx.type="UserCodeMultiBlockCodeData" sixx.env="Arduino">
+            <sixx.object sixx.id="91" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">203083801</sixx.object>
+            <sixx.object sixx.id="92" sixx.name="declareSection" sixx.type="UserCodeMultiBlockCodeDataDeclareSection" sixx.env="Arduino">
+              <sixx.object sixx.id="93" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">262241870</sixx.object>
+              <sixx.object sixx.id="94" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="95" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">55212529</sixx.object>
+                <sixx.object sixx.id="96" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="14" />
+                <sixx.object sixx.name="section" sixx.idref="15" />
+              </sixx.object>
+              <sixx.object sixx.id="97" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="98" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">190984402</sixx.object>
+                <sixx.object sixx.id="99" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+									</sixx.object>
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="19" />
+                <sixx.object sixx.name="section" sixx.idref="15" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            </sixx.object>
+            <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.id="529" sixx.name="setupSection" sixx.type="UserCodeMultiBlockCodeDataSetupSection" sixx.env="Arduino">
+              <sixx.object sixx.id="530" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">79331540</sixx.object>
+              <sixx.object sixx.id="531" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="532" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">201013593</sixx.object>
+                <sixx.object sixx.id="533" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="14" />
+                <sixx.object sixx.name="section" sixx.idref="25" />
+              </sixx.object>
+              <sixx.object sixx.id="534" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="535" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">57644090</sixx.object>
+                <sixx.object sixx.id="536" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+									</sixx.object>
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="19" />
+                <sixx.object sixx.name="section" sixx.idref="25" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            </sixx.object>
+            <sixx.object sixx.id="733" sixx.name="loopSection" sixx.type="UserCodeMultiBlockCodeDataLoopSection" sixx.env="Arduino">
+              <sixx.object sixx.id="734" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">205668308</sixx.object>
+              <sixx.object sixx.id="735" sixx.name="startPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="736" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">161843893</sixx.object>
+                <sixx.object sixx.id="737" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="14" />
+                <sixx.object sixx.name="section" sixx.idref="34" />
+              </sixx.object>
+              <sixx.object sixx.id="738" sixx.name="stopPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="739" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">63979987</sixx.object>
+                <sixx.object sixx.id="740" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="19" />
+                <sixx.object sixx.name="section" sixx.idref="34" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+              <sixx.object sixx.id="741" sixx.name="inseptPart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="742" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">92034645</sixx.object>
+                <sixx.object sixx.id="743" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+									</sixx.object>
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="41" />
+                <sixx.object sixx.name="section" sixx.idref="34" />
+              </sixx.object>
+            </sixx.object>
+            <sixx.object sixx.id="1112" sixx.name="functionSection" sixx.type="UserCodeMultiBlockCodeDataFunctionSection" sixx.env="Arduino">
+              <sixx.object sixx.id="1113" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">139743780</sixx.object>
+              <sixx.object sixx.id="1114" sixx.name="codePart" sixx.type="UserCodeMultiBlockCodePartsLibrary" sixx.env="Arduino">
+                <sixx.object sixx.id="1115" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">229111463</sixx.object>
+                <sixx.object sixx.id="1116" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+                <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+                <sixx.object sixx.name="position" sixx.idref="47" />
+                <sixx.object sixx.name="section" sixx.idref="48" />
+              </sixx.object>
+              <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+              <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            </sixx.object>
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1117" sixx.name="commonParametrsLibrary" sixx.type="UserCodeMultiBlockParametrsLibrary" sixx.env="Arduino">
+            <sixx.object sixx.id="1118" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">4223065</sixx.object>
+            <sixx.object sixx.id="1119" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+            <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1120" sixx.name="instanceParametrsLibrary" sixx.type="UserCodeMultiBlockParametrsLibrary" sixx.env="Arduino">
+            <sixx.object sixx.id="1121" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">253678540</sixx.object>
+            <sixx.object sixx.id="1122" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+							</sixx.object>
+            <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1173" sixx.name="inputsLibrary" sixx.type="UserCodeMultiBlockInputsOutputsLibrary" sixx.env="Arduino">
+            <sixx.object sixx.id="1174" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">210069358</sixx.object>
+            <sixx.object sixx.id="1175" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+							</sixx.object>
+            <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.name="isInputs" sixx.type="True" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1210" sixx.name="outputsLibrary" sixx.type="UserCodeMultiBlockInputsOutputsLibrary" sixx.env="Arduino">
+            <sixx.object sixx.id="1211" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">196598685</sixx.object>
+            <sixx.object sixx.id="1212" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+							</sixx.object>
+            <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.name="isInputs" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1213" sixx.name="commonConditionsLibrary" sixx.type="UserCodeMultiBlockConditionsLibrary" sixx.env="Arduino">
+            <sixx.object sixx.id="1214" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">205899844</sixx.object>
+            <sixx.object sixx.id="1215" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+            <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1216" sixx.name="instanceConditionsLibrary" sixx.type="UserCodeMultiBlockConditionsLibrary" sixx.env="Arduino">
+            <sixx.object sixx.id="1217" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">16464858</sixx.object>
+            <sixx.object sixx.id="1218" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+							</sixx.object>
+            <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+            <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+          </sixx.object>
+          <sixx.object sixx.id="1231" sixx.name="userDataParametrsView" sixx.type="UserCodeMultiBlockEditorUserDataParametrsView" sixx.env="Arduino">
+            <sixx.object sixx.id="1232" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">16059161</sixx.object>
+            <sixx.object sixx.id="1233" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+							</sixx.object>
+            <sixx.object sixx.name="blockInstance" sixx.idref="52" />
+          </sixx.object>
+          <sixx.object sixx.name="isUseItOnce" sixx.type="False" sixx.env="Core" />
+          <sixx.object sixx.id="1258" sixx.name="info" sixx.type="Text" sixx.env="Core">
+            <sixx.object sixx.id="1259" sixx.name="string" sixx.type="String" sixx.env="Core">SHT3x Датчик температуры(град.С)  и влажности (%). 
+Поддерживается "горячее" подключение, ошибочные измерения отфильтровываются.
+---------------------------------------------------------------------------------------------------
+ ecoins@mail.ru 30.03.2025. 
+</sixx.object>
+            <sixx.object sixx.id="1260" sixx.name="runs" sixx.type="RunArray" sixx.env="Core">
+              <sixx.object sixx.id="1261" sixx.name="runs" sixx.type="Array" sixx.env="Core">
+                <sixx.object sixx.id="1262" sixx.type="SmallInteger" sixx.env="Core">258</sixx.object>
+              </sixx.object>
+              <sixx.object sixx.id="1263" sixx.name="values" sixx.type="Array" sixx.env="Core">
+                <sixx.object sixx.type="UndefinedObject" sixx.env="Core" />
+              </sixx.object>
+            </sixx.object>
+          </sixx.object>
+          <sixx.object sixx.id="1264" sixx.name="oldId" sixx.type="SmallInteger" sixx.env="Core">43163626</sixx.object>
+          <sixx.object sixx.id="1265" sixx.name="nodeId" sixx.type="SmallInteger" sixx.env="Core">167012880</sixx.object>
+          <sixx.object sixx.id="1266" sixx.name="extLibsIDs" sixx.type="OrderedCollection" sixx.env="Core" />
+          <sixx.object sixx.name="isReadOnly" sixx.type="True" sixx.env="Core" />
+        </sixx.object>
+      </sixx.object>
+      <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+      <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+      <sixx.object sixx.id="1267" sixx.name="userDataBlocksView" sixx.type="UserCodeMultiBlockEditorUserDataBlocksView" sixx.env="Arduino">
+        <sixx.object sixx.id="1268" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">23665108</sixx.object>
+        <sixx.object sixx.id="1269" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core">
+          <sixx.object sixx.id="1270" sixx.type="UserCodeMultiBlockEditorUserDataViewTreeElement" sixx.env="Arduino">
+            <sixx.object sixx.id="1271" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">212154294</sixx.object>
+            <sixx.object sixx.name="object" sixx.idref="52" />
+            <sixx.object sixx.name="altName" sixx.idref="6" />
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.name="blockInstanceLibrary" sixx.idref="49" />
+        <sixx.object sixx.name="name" sixx.idref="5" />
+      </sixx.object>
+    </sixx.object>
+    <sixx.object sixx.id="1272" sixx.name="commonParametrsLibrary" sixx.type="UserCodeMultiBlockParametrsLibrary" sixx.env="Arduino">
+      <sixx.object sixx.id="1273" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">189570436</sixx.object>
+      <sixx.object sixx.id="1274" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+      <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+      <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+    </sixx.object>
+    <sixx.object sixx.id="1275" sixx.name="commonExtLibsLibrary" sixx.type="UserCodeMultiBlockExtLibsLibrary" sixx.env="Arduino">
+      <sixx.object sixx.id="1276" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">150769752</sixx.object>
+      <sixx.object sixx.id="1277" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+      <sixx.object sixx.name="isCommon" sixx.type="False" sixx.env="Core" />
+      <sixx.object sixx.name="isMain" sixx.type="False" sixx.env="Core" />
+    </sixx.object>
+    <sixx.object sixx.id="1278" sixx.name="conditionsLibrary" sixx.type="UserCodeMultiBlockConditionsLibrary" sixx.env="Arduino">
+      <sixx.object sixx.id="1279" sixx.name="id" sixx.type="SmallInteger" sixx.env="Core">215980586</sixx.object>
+      <sixx.object sixx.id="1280" sixx.name="items" sixx.type="OrderedCollection" sixx.env="Core" />
+      <sixx.object sixx.name="isCommon" sixx.type="True" sixx.env="Core" />
+      <sixx.object sixx.name="isMain" sixx.type="True" sixx.env="Core" />
+    </sixx.object>
+    <sixx.object sixx.name="isAsStandart" sixx.type="False" sixx.env="Core" />
+    <sixx.object sixx.id="1281" sixx.name="editorPositionStore" sixx.type="UserCodeMiltiBlockEditorPositiomStore" sixx.env="Arduino">
+      <sixx.object sixx.id="1282" sixx.name="expandElements" sixx.type="OrderedCollection" sixx.env="Core">
+        <sixx.object sixx.id="1283" sixx.type="String" sixx.env="Core">MainParametrs</sixx.object>
+        <sixx.object sixx.id="1284" sixx.type="String" sixx.env="Core">CommonCode</sixx.object>
+        <sixx.object sixx.id="1285" sixx.type="String" sixx.env="Core">260890526-Declare</sixx.object>
+        <sixx.object sixx.id="1286" sixx.type="String" sixx.env="Core">244238588</sixx.object>
+        <sixx.object sixx.id="1287" sixx.type="String" sixx.env="Core">167012880</sixx.object>
+        <sixx.object sixx.id="1288" sixx.type="String" sixx.env="Core">MainParametrs_167012880</sixx.object>
+        <sixx.object sixx.id="1289" sixx.type="String" sixx.env="Core">253678540</sixx.object>
+        <sixx.object sixx.id="1290" sixx.type="String" sixx.env="Core">187295678</sixx.object>
+        <sixx.object sixx.id="1291" sixx.type="String" sixx.env="Core">16464858</sixx.object>
+        <sixx.object sixx.id="1292" sixx.type="String" sixx.env="Core">116748551</sixx.object>
+        <sixx.object sixx.id="1293" sixx.type="String" sixx.env="Core">178495621</sixx.object>
+        <sixx.object sixx.id="1294" sixx.type="String" sixx.env="Core">173020117</sixx.object>
+        <sixx.object sixx.id="1295" sixx.type="String" sixx.env="Core">167012880-MainCode</sixx.object>
+        <sixx.object sixx.id="1296" sixx.type="String" sixx.env="Core">167012880-CommonCode</sixx.object>
+        <sixx.object sixx.id="1297" sixx.type="String" sixx.env="Core">167012880-InstanceCode</sixx.object>
+        <sixx.object sixx.id="1298" sixx.type="String" sixx.env="Core">203083801-Declare</sixx.object>
+        <sixx.object sixx.id="1299" sixx.type="String" sixx.env="Core">190984402</sixx.object>
+        <sixx.object sixx.id="1300" sixx.type="String" sixx.env="Core">an Arduino.UserCodeMultiBlockCodeData-Setup</sixx.object>
+        <sixx.object sixx.id="1301" sixx.type="String" sixx.env="Core">57644090</sixx.object>
+        <sixx.object sixx.id="1302" sixx.type="String" sixx.env="Core">203083801-Loop</sixx.object>
+        <sixx.object sixx.id="1303" sixx.type="String" sixx.env="Core">92034645</sixx.object>
+        <sixx.object sixx.id="1304" sixx.type="String" sixx.env="Core">210069358</sixx.object>
+        <sixx.object sixx.id="1305" sixx.type="String" sixx.env="Core">196598685</sixx.object>
+      </sixx.object>
+      <sixx.object sixx.id="1306" sixx.name="treeScroolPosition" sixx.type="Point" sixx.env="Core">0@-336</sixx.object>
+      <sixx.object sixx.id="1307" sixx.name="positionStoreDictionary" sixx.type="Dictionary" sixx.env="Core">
+        <sixx.object sixx.id="1308" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1309" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">93398286</sixx.object>
+          <sixx.object sixx.id="1310" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1311" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1312" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1313" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">60170492</sixx.object>
+          <sixx.object sixx.id="1314" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1315" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1316" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1317" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">89914049</sixx.object>
+          <sixx.object sixx.id="1318" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1319" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1320" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1321" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">136874960</sixx.object>
+          <sixx.object sixx.id="1322" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1323" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1324" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1325" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">158637096</sixx.object>
+          <sixx.object sixx.id="1326" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1327" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1328" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1329" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">188756468</sixx.object>
+          <sixx.object sixx.id="1330" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1331" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1332" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1333" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">139099313</sixx.object>
+          <sixx.object sixx.id="1334" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1335" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1336" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1337" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">146943795</sixx.object>
+          <sixx.object sixx.id="1338" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1339" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1340" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1341" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">243641334</sixx.object>
+          <sixx.object sixx.id="1342" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1343" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1344" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1345" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">165654529</sixx.object>
+          <sixx.object sixx.id="1346" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1347" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1348" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1349" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">142720508</sixx.object>
+          <sixx.object sixx.id="1350" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1351" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1352" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1353" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">90105340</sixx.object>
+          <sixx.object sixx.id="1354" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1355" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1356" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1357" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">190583465</sixx.object>
+          <sixx.object sixx.id="1358" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1359" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1360" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1361" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">154126911</sixx.object>
+          <sixx.object sixx.id="1362" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1363" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1364" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1365" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">82832898</sixx.object>
+          <sixx.object sixx.id="1366" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1367" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1368" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1369" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">264829213</sixx.object>
+          <sixx.object sixx.id="1370" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1371" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1372" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1373" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">169051679</sixx.object>
+          <sixx.object sixx.id="1374" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1375" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1376" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1377" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">168848740</sixx.object>
+          <sixx.object sixx.id="1378" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1379" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1380" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1381" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">145825817</sixx.object>
+          <sixx.object sixx.id="1382" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1383" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1384" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1385" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">174831217</sixx.object>
+          <sixx.object sixx.id="1386" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1387" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1388" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1389" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">106658201</sixx.object>
+          <sixx.object sixx.id="1390" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1391" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1392" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1393" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">237963763</sixx.object>
+          <sixx.object sixx.id="1394" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1395" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1396" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1397" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1398" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1399" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1400" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">78321365</sixx.object>
+          <sixx.object sixx.id="1401" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1402" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1403" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1404" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">139787672</sixx.object>
+          <sixx.object sixx.id="1405" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1406" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1407" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1408" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">183820654</sixx.object>
+          <sixx.object sixx.id="1409" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1410" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1411" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1412" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">59059719</sixx.object>
+          <sixx.object sixx.id="1413" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1414" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1415" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1416" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">63320281</sixx.object>
+          <sixx.object sixx.id="1417" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1418" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1419" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1420" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">173170377</sixx.object>
+          <sixx.object sixx.id="1421" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1422" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1423" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1424" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1425" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1426" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1427" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">246230310</sixx.object>
+          <sixx.object sixx.id="1428" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1429" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1430" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1431" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">88964019</sixx.object>
+          <sixx.object sixx.id="1432" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1433" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1434" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1435" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">200759635</sixx.object>
+          <sixx.object sixx.id="1436" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1437" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1438" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1439" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">128074618</sixx.object>
+          <sixx.object sixx.id="1440" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1441" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1442" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1443" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">32527864</sixx.object>
+          <sixx.object sixx.id="1444" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1445" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1446" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1447" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">140313463</sixx.object>
+          <sixx.object sixx.id="1448" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1449" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1450" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1451" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">220097175</sixx.object>
+          <sixx.object sixx.id="1452" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1453" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1454" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1455" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">250736038</sixx.object>
+          <sixx.object sixx.id="1456" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1457" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1458" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1459" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">261441103</sixx.object>
+          <sixx.object sixx.id="1460" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1461" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1462" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1463" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">6999990</sixx.object>
+          <sixx.object sixx.id="1464" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1465" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1466" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1467" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">187937113</sixx.object>
+          <sixx.object sixx.id="1468" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1469" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1470" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1471" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">210863056</sixx.object>
+          <sixx.object sixx.id="1472" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1473" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1474" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1475" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">76790310</sixx.object>
+          <sixx.object sixx.id="1476" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1477" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1478" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1479" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">51899098</sixx.object>
+          <sixx.object sixx.id="1480" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1481" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1482" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1483" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">246950989</sixx.object>
+          <sixx.object sixx.id="1484" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1485" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1486" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1487" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">25231648</sixx.object>
+          <sixx.object sixx.id="1488" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1489" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1490" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1491" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">200737672</sixx.object>
+          <sixx.object sixx.id="1492" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1493" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1494" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1495" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">53646620</sixx.object>
+          <sixx.object sixx.id="1496" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1497" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1498" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1499" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1500" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1501" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1502" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">158664130</sixx.object>
+          <sixx.object sixx.id="1503" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1504" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1505" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1506" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">9538660</sixx.object>
+          <sixx.object sixx.id="1507" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1508" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1509" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1510" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">38742967</sixx.object>
+          <sixx.object sixx.id="1511" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1512" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1513" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1514" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">263437393</sixx.object>
+          <sixx.object sixx.id="1515" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1516" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1517" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1518" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">210898557</sixx.object>
+          <sixx.object sixx.id="1519" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1520" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1521" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1522" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">136381170</sixx.object>
+          <sixx.object sixx.id="1523" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1524" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1525" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1526" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">25836025</sixx.object>
+          <sixx.object sixx.id="1527" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1528" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1529" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1530" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">92590202</sixx.object>
+          <sixx.object sixx.id="1531" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1532" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1533" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1534" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">43294942</sixx.object>
+          <sixx.object sixx.id="1535" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1536" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1537" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1538" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">10892409</sixx.object>
+          <sixx.object sixx.id="1539" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1540" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1541" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1542" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">213800002</sixx.object>
+          <sixx.object sixx.id="1543" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1544" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1545" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1546" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">37272959</sixx.object>
+          <sixx.object sixx.id="1547" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1548" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1549" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1550" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">253847217</sixx.object>
+          <sixx.object sixx.id="1551" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1552" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1553" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1554" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">257960508</sixx.object>
+          <sixx.object sixx.id="1555" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1556" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1557" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1558" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">161924352</sixx.object>
+          <sixx.object sixx.id="1559" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1560" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1561" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1562" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">204151457</sixx.object>
+          <sixx.object sixx.id="1563" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1564" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1565" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1566" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">171174653</sixx.object>
+          <sixx.object sixx.id="1567" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1568" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1569" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1570" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">203037039</sixx.object>
+          <sixx.object sixx.id="1571" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1572" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1573" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1574" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">255541756</sixx.object>
+          <sixx.object sixx.id="1575" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1576" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1577" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1578" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">251961879</sixx.object>
+          <sixx.object sixx.id="1579" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1580" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1581" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1582" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">38401317</sixx.object>
+          <sixx.object sixx.id="1583" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1584" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1585" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1586" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">147792983</sixx.object>
+          <sixx.object sixx.id="1587" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1588" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1589" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1590" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">247026475</sixx.object>
+          <sixx.object sixx.id="1591" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1592" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1593" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1594" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">40411942</sixx.object>
+          <sixx.object sixx.id="1595" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1596" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1597" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1598" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">75759915</sixx.object>
+          <sixx.object sixx.id="1599" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1600" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1601" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1602" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">238174888</sixx.object>
+          <sixx.object sixx.id="1603" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1604" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1605" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1606" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">124700015</sixx.object>
+          <sixx.object sixx.id="1607" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1608" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1609" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1610" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">94897193</sixx.object>
+          <sixx.object sixx.id="1611" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1612" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1613" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1614" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">125322339</sixx.object>
+          <sixx.object sixx.id="1615" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1616" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1617" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1618" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">79529282</sixx.object>
+          <sixx.object sixx.id="1619" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1620" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1621" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1622" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">228525892</sixx.object>
+          <sixx.object sixx.id="1623" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1624" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1625" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1626" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">146431186</sixx.object>
+          <sixx.object sixx.id="1627" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1628" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1629" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1630" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">94115505</sixx.object>
+          <sixx.object sixx.id="1631" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1632" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1633" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1634" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">166907835</sixx.object>
+          <sixx.object sixx.id="1635" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1636" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1637" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1638" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">247753430</sixx.object>
+          <sixx.object sixx.id="1639" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1640" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1641" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1642" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">257508859</sixx.object>
+          <sixx.object sixx.id="1643" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1644" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1645" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1646" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">83274861</sixx.object>
+          <sixx.object sixx.id="1647" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1648" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1649" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1650" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">108113542</sixx.object>
+          <sixx.object sixx.id="1651" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1652" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1653" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1654" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">48044527</sixx.object>
+          <sixx.object sixx.id="1655" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1656" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1657" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1658" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">66603492</sixx.object>
+          <sixx.object sixx.id="1659" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1660" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1661" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1662" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">256920224</sixx.object>
+          <sixx.object sixx.id="1663" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1664" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1665" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1666" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">200827105</sixx.object>
+          <sixx.object sixx.id="1667" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1668" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1669" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1670" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">80126479</sixx.object>
+          <sixx.object sixx.id="1671" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1672" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1673" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1674" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">42883285</sixx.object>
+          <sixx.object sixx.id="1675" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1676" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1677" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1678" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">73455700</sixx.object>
+          <sixx.object sixx.id="1679" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1680" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1681" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1682" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">261852060</sixx.object>
+          <sixx.object sixx.id="1683" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1684" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1685" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1686" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">73185404</sixx.object>
+          <sixx.object sixx.id="1687" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1688" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1689" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1690" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">84774993</sixx.object>
+          <sixx.object sixx.id="1691" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1692" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1693" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1694" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1695" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1696" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1697" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">183668149</sixx.object>
+          <sixx.object sixx.id="1698" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1699" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1700" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1701" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">19080920</sixx.object>
+          <sixx.object sixx.id="1702" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1703" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1704" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1705" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">157662076</sixx.object>
+          <sixx.object sixx.id="1706" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1707" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1708" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1709" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">216744643</sixx.object>
+          <sixx.object sixx.id="1710" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1711" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1712" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1713" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">106606739</sixx.object>
+          <sixx.object sixx.id="1714" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1715" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1716" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1717" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">202775806</sixx.object>
+          <sixx.object sixx.id="1718" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1719" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1720" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1721" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">72583315</sixx.object>
+          <sixx.object sixx.id="1722" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1723" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1724" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1725" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">252253365</sixx.object>
+          <sixx.object sixx.id="1726" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1727" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1728" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1729" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">93536805</sixx.object>
+          <sixx.object sixx.id="1730" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1731" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1732" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1733" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">159300039</sixx.object>
+          <sixx.object sixx.id="1734" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1735" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1736" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1737" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">238918966</sixx.object>
+          <sixx.object sixx.id="1738" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1739" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1740" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1741" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">126698607</sixx.object>
+          <sixx.object sixx.id="1742" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1743" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1744" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1745" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">28689541</sixx.object>
+          <sixx.object sixx.id="1746" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1747" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1748" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1749" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">152055434</sixx.object>
+          <sixx.object sixx.id="1750" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1751" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1752" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1753" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1754" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1755" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1756" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">91277002</sixx.object>
+          <sixx.object sixx.id="1757" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1758" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1759" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1760" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">74434120</sixx.object>
+          <sixx.object sixx.id="1761" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1762" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1763" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1764" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">16826075</sixx.object>
+          <sixx.object sixx.id="1765" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1766" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1767" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1768" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">218547857</sixx.object>
+          <sixx.object sixx.id="1769" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1770" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1771" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1772" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">51982775</sixx.object>
+          <sixx.object sixx.id="1773" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1774" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1775" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1776" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">214065492</sixx.object>
+          <sixx.object sixx.id="1777" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1778" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1779" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1780" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">95889145</sixx.object>
+          <sixx.object sixx.id="1781" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1782" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1783" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1784" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">101883297</sixx.object>
+          <sixx.object sixx.id="1785" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1786" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1787" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1788" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">13459483</sixx.object>
+          <sixx.object sixx.id="1789" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1790" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1791" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1792" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">174943237</sixx.object>
+          <sixx.object sixx.id="1793" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1794" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1795" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1796" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">187112935</sixx.object>
+          <sixx.object sixx.id="1797" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1798" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1799" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1800" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">35102638</sixx.object>
+          <sixx.object sixx.id="1801" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1802" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1803" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1804" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">118038328</sixx.object>
+          <sixx.object sixx.id="1805" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1806" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1807" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1808" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">119949722</sixx.object>
+          <sixx.object sixx.id="1809" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1810" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1811" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1812" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">209355499</sixx.object>
+          <sixx.object sixx.id="1813" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1814" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1815" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1816" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">122582660</sixx.object>
+          <sixx.object sixx.id="1817" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1818" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1819" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1820" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">25475639</sixx.object>
+          <sixx.object sixx.id="1821" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1822" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1823" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1824" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">249116254</sixx.object>
+          <sixx.object sixx.id="1825" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1826" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1827" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1828" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">207110956</sixx.object>
+          <sixx.object sixx.id="1829" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1830" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1831" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1832" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1833" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1834" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1835" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">109092915</sixx.object>
+          <sixx.object sixx.id="1836" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1837" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1838" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1839" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">114821707</sixx.object>
+          <sixx.object sixx.id="1840" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1841" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1842" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1843" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">109514084</sixx.object>
+          <sixx.object sixx.id="1844" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1845" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1846" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1847" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">215796874</sixx.object>
+          <sixx.object sixx.id="1848" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1849" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1850" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1851" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1852" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1853" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1854" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1855" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1856" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1857" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">235121393</sixx.object>
+          <sixx.object sixx.id="1858" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1859" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1860" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1861" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1862" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1863" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1864" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">129258870</sixx.object>
+          <sixx.object sixx.id="1865" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1866" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1867" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1868" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">191047108</sixx.object>
+          <sixx.object sixx.id="1869" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1870" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1871" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1872" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">19697934</sixx.object>
+          <sixx.object sixx.id="1873" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1874" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1875" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1876" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">159957454</sixx.object>
+          <sixx.object sixx.id="1877" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1878" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1879" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1880" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">38736891</sixx.object>
+          <sixx.object sixx.id="1881" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1882" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1883" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1884" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">53869089</sixx.object>
+          <sixx.object sixx.id="1885" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1886" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1887" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1888" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">115359192</sixx.object>
+          <sixx.object sixx.id="1889" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1890" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1891" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1892" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">27348904</sixx.object>
+          <sixx.object sixx.id="1893" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1894" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1895" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1896" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">74460682</sixx.object>
+          <sixx.object sixx.id="1897" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1898" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1899" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1900" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">131149173</sixx.object>
+          <sixx.object sixx.id="1901" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1902" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1903" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1904" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">195012695</sixx.object>
+          <sixx.object sixx.id="1905" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1906" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1907" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1908" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">37635053</sixx.object>
+          <sixx.object sixx.id="1909" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1910" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1911" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1912" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">210412499</sixx.object>
+          <sixx.object sixx.id="1913" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1914" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1915" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1916" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">40858876</sixx.object>
+          <sixx.object sixx.id="1917" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1918" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1919" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1920" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">24773451</sixx.object>
+          <sixx.object sixx.id="1921" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1922" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1923" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1924" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">66938147</sixx.object>
+          <sixx.object sixx.id="1925" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1926" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1927" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1928" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">76524747</sixx.object>
+          <sixx.object sixx.id="1929" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1930" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1931" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1932" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">235665164</sixx.object>
+          <sixx.object sixx.id="1933" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1934" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1935" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1936" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">5803210</sixx.object>
+          <sixx.object sixx.id="1937" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1938" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1939" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1940" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">143163089</sixx.object>
+          <sixx.object sixx.id="1941" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1942" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1943" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1944" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">168842300</sixx.object>
+          <sixx.object sixx.id="1945" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1946" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1947" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1948" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">221623150</sixx.object>
+          <sixx.object sixx.id="1949" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1950" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1951" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1952" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">244054295</sixx.object>
+          <sixx.object sixx.id="1953" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1954" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1955" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1956" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">8929161</sixx.object>
+          <sixx.object sixx.id="1957" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1958" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1959" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1960" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">261583258</sixx.object>
+          <sixx.object sixx.id="1961" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1962" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1963" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1964" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">85400596</sixx.object>
+          <sixx.object sixx.id="1965" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1966" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1967" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1968" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">152900567</sixx.object>
+          <sixx.object sixx.id="1969" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1970" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1971" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1972" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">144831141</sixx.object>
+          <sixx.object sixx.id="1973" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1974" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1975" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1976" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">41454279</sixx.object>
+          <sixx.object sixx.id="1977" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1978" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1979" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1980" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">257375687</sixx.object>
+          <sixx.object sixx.id="1981" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1982" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1983" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1984" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">50461221</sixx.object>
+          <sixx.object sixx.id="1985" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1986" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1987" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1988" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">203035466</sixx.object>
+          <sixx.object sixx.id="1989" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1990" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1991" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1992" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">12195202</sixx.object>
+          <sixx.object sixx.id="1993" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1994" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1995" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="1996" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">245144485</sixx.object>
+          <sixx.object sixx.id="1997" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="1998" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="1999" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2000" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">181965246</sixx.object>
+          <sixx.object sixx.id="2001" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2002" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2003" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2004" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">252613604</sixx.object>
+          <sixx.object sixx.id="2005" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2006" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2007" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2008" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2009" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2010" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2011" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">233328605</sixx.object>
+          <sixx.object sixx.id="2012" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2013" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2014" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2015" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2016" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2017" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2018" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2019" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2020" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2021" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">104919551</sixx.object>
+          <sixx.object sixx.id="2022" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2023" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2024" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2025" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">256540566</sixx.object>
+          <sixx.object sixx.id="2026" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2027" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2028" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2029" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2030" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2031" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2032" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">170926144</sixx.object>
+          <sixx.object sixx.id="2033" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2034" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2035" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2036" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">129249514</sixx.object>
+          <sixx.object sixx.id="2037" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2038" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2039" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2040" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">39294615</sixx.object>
+          <sixx.object sixx.id="2041" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2042" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2043" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2044" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2045" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2046" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2047" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">6493382</sixx.object>
+          <sixx.object sixx.id="2048" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2049" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2050" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2051" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">241003389</sixx.object>
+          <sixx.object sixx.id="2052" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2053" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2054" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2055" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">52646993</sixx.object>
+          <sixx.object sixx.id="2056" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2057" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2058" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2059" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">110487174</sixx.object>
+          <sixx.object sixx.id="2060" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2061" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2062" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2063" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">266472469</sixx.object>
+          <sixx.object sixx.id="2064" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2065" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2066" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2067" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">133782643</sixx.object>
+          <sixx.object sixx.id="2068" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2069" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2070" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2071" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">154481989</sixx.object>
+          <sixx.object sixx.id="2072" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2073" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2074" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2075" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">193996689</sixx.object>
+          <sixx.object sixx.id="2076" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2077" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2078" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2079" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2080" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2081" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2082" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">126049521</sixx.object>
+          <sixx.object sixx.id="2083" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2084" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2085" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2086" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">142866822</sixx.object>
+          <sixx.object sixx.id="2087" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2088" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2089" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2090" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">172741039</sixx.object>
+          <sixx.object sixx.id="2091" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2092" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2093" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2094" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">200854279</sixx.object>
+          <sixx.object sixx.id="2095" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2096" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2097" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2098" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">41888972</sixx.object>
+          <sixx.object sixx.id="2099" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2100" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2101" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2102" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">251522588</sixx.object>
+          <sixx.object sixx.id="2103" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2104" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2105" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2106" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">11168399</sixx.object>
+          <sixx.object sixx.id="2107" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2108" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2109" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2110" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">110069629</sixx.object>
+          <sixx.object sixx.id="2111" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2112" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2113" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2114" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">186700459</sixx.object>
+          <sixx.object sixx.id="2115" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2116" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2117" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2118" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">241075257</sixx.object>
+          <sixx.object sixx.id="2119" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2120" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2121" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2122" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">238496654</sixx.object>
+          <sixx.object sixx.id="2123" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2124" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2125" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2126" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2127" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2128" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2129" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">75844611</sixx.object>
+          <sixx.object sixx.id="2130" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2131" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2132" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2133" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">221437807</sixx.object>
+          <sixx.object sixx.id="2134" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2135" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2136" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2137" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">204471446</sixx.object>
+          <sixx.object sixx.id="2138" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2139" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2140" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2141" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">202815988</sixx.object>
+          <sixx.object sixx.id="2142" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2143" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2144" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2145" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">727827</sixx.object>
+          <sixx.object sixx.id="2146" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2147" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+        <sixx.object sixx.id="2148" sixx.type="Association" sixx.env="Core">
+          <sixx.object sixx.id="2149" sixx.name="key" sixx.type="SmallInteger" sixx.env="Core">210070935</sixx.object>
+          <sixx.object sixx.id="2150" sixx.name="value" sixx.type="OrderedCollection" sixx.env="Core">
+            <sixx.object sixx.id="2151" sixx.type="Point" sixx.env="Core">0@0</sixx.object>
+          </sixx.object>
+        </sixx.object>
+      </sixx.object>
+      <sixx.object sixx.name="isShowServiceInformation" sixx.type="True" sixx.env="Core" />
+      <sixx.object sixx.id="2152" sixx.name="selectedIdString" sixx.type="String" sixx.env="Core">132769454</sixx.object>
+      <sixx.object sixx.id="2153" sixx.name="parametrsTreeWidth" sixx.type="SmallInteger" sixx.env="Core">439</sixx.object>
+      <sixx.object sixx.id="2154" sixx.name="mainWindowDisplayBox" sixx.type="Rectangle" sixx.env="Graphics">768@356 corner: 1792@1036</sixx.object>
+    </sixx.object>
+    <sixx.object sixx.id="2155" sixx.name="templates" sixx.type="OrderedCollection" sixx.env="Core" />
+    <sixx.object sixx.name="isReadOnly" sixx.type="True" sixx.env="Core" />
+  </sixx.object>
+</sixx.object>
