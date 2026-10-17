@@ -133,10 +133,10 @@
       <h3>Справка по работе с конвертером</h3>
       <div class="help-content">
         <details class="full-guide" open>
-          <summary><strong>Полная инструкция · ino2ubi FIX12 / FLProg 9.8.0</strong></summary>
+          <summary><strong>Полная инструкция · ino2ubi v2.16 FIX14 / FLProg 9.8.0</strong></summary>
           <div class="full-guide-body">
-            <h1>Инструкция по созданию блоков через ino2ubi FIX12</h1>
-            <p><strong>Назначение.</strong> Применяй эту инструкцию при создании Arduino-скетчей <code>.ino</code>, которые затем преобразуются сайтом <strong>ino2ubi 2.16-CodeProfessional-PREVIEW-FIX13</strong> в пользовательские блоки <strong>Code Basic</strong> или <strong>Code Professional</strong> для <strong>FLProg 9.8.0</strong>, целевая платформа — <strong>ESP32 / Espressif Arduino-ESP32 Core 2.0.17 (ESP-IDF 4.4.7)</strong>.</p>
+            <h1>Инструкция по созданию блоков через ino2ubi v2.16 FIX14</h1>
+            <p><strong>Назначение.</strong> Применяй эту инструкцию при создании Arduino-скетчей <code>.ino</code>, которые затем преобразуются сайтом <strong>ino2ubi 2.16-CodeProfessional-PREVIEW-FIX14</strong> в пользовательские блоки <strong>Code Basic</strong> или <strong>Code Professional</strong> для <strong>FLProg 9.8.0</strong>, целевая платформа — <strong>ESP32 / Espressif Arduino-ESP32 Core 2.0.17 (ESP-IDF 4.4.7)</strong>.</p>
             <p><strong>Статус:</strong> FIX12 проверен пользователем в FLProg и опубликован на GitHub Pages. Это не означает, что любой новый скетч автоматически совместим или компилируется. Новые блоки проверяй по отдельности.</p>
             <h2>1. Основная задача</h2>
             <p>Создавай <strong>полный, самостоятельный Arduino-скетч <code>.ino</code></strong> строго под конкретное задание. Один и тот же исходный скетч должен, насколько позволяет его логика и поддерживаемые конструкции, подходить для обоих режимов ino2ubi — Code Basic и Code Professional.</p>
@@ -175,6 +175,9 @@
             <p><strong>Важно:</strong> <code>// par: ...</code> — это отдельная подпись параметра. Не переименовывай ради неё C++-переменную, используемую в вычислениях. Если подпись не указана, обычно отображается исходное имя переменной.</p>
             <p>Предпочитай простые типы: <code>bool</code>, <code>byte</code>, <code>uint8_t</code>, <code>int</code>, <code>int16_t</code>, <code>uint16_t</code>, <code>long</code>, <code>unsigned long</code>, <code>int32_t</code>, <code>uint32_t</code>, <code>float</code>, <code>double</code>, <code>char</code>, <code>String</code>. Реальное преобразование и диапазоны проверяй в экспортированном <code>.ubi</code> и итоговом <code>.ino</code> FLProg, особенно для <code>uint16_t</code>, <code>uint32_t</code>, <code>double</code>, <code>String</code>.</p>
             <p>Не представляй массивы, объекты классов, <code>struct</code> и указатели как обычные контакты без отдельной проверки. Для параметров используй простые значения по умолчанию соответствующего типа.</p>
+            <h2>FIX14 — строковые параметры String</h2>
+            <p>При экспорте Code Basic и Code Professional ссылки на параметры <code>String ...; // par</code> в коде <code>setup()</code>, <code>loop()</code> и телах вспомогательных функций преобразуются в локальные объекты <code>String</code>. Это сохраняет методы <code>.c_str()</code> и сравнения строк после подстановки FLProg строкового литерала.</p>
+            <p>Ничего вручную переписывать для этих случаев не требуется. Код глобальных объявлений остаётся без преобразования, поэтому нестандартные случаи по-прежнему требуют реальной компиляции в FLProg 9.8.0.</p>
             <h2>4. Code Basic и Code Professional</h2>
             <p><strong>Code Basic:</strong></p>
             <ul>
@@ -349,6 +352,7 @@ uint8_t bufferSize = 32;             // variable</pre>
 
   <script src="constants.js"></script>
   <script src="parser.js"></script>
+  <script src="string-params.js"></script>
   <script src="generator.js"></script>
   <script src="professional.js"></script>
   <script src="professional-template-data.js"></script>

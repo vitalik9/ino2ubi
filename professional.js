@@ -319,6 +319,8 @@
     const inst=Array.from(instances.children).find(el=>el.getAttribute('sixx.type')==='UserCodeMultiBlockBlockInstance');
     if (!inst) throw new Error('Не найден экземпляр блока Code Professional.');
     const state=options.state || {};
+    // FIX14: FLProg parameter tags can expand to string literals, not String objects.
+    const stringParams=window.ino2ubiStringParams.collect(state.variables, state.defines);
     const name=String(options.name||'Custom Block').trim();
     const description=String(options.description||'').trim();
     textOf(required(main,'mainParametrs'),'folderName',name);
@@ -356,11 +358,13 @@
     b.codePart(inst,'declare','stop','Библиотеки и объявления',[includes,headerInc,defineLines,declarations,staticDecl,globalDecl].filter(Boolean).join('\n'));
     if (internal.length) {
       b.codePart(inst,'function','neitral','Функции, использующие контакты',internal.map(([fn,f])=>{
-        return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+(f.body||'')+'\n}';
+        const excluded=(f.parsed_params||[]).map(p=>p.name);
+        const body=window.ino2ubiStringParams.transform(f.body||'',stringParams,excluded);
+        return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
       }).join('\n\n'));
     }
-    const setup=options.setupCode||'';
-    let loop=options.loopCode||'';
+    const setup=window.ino2ubiStringParams.transform(options.setupCode||'',stringParams);
+    let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
     b.codePart(inst,'setup','stop','Инициализация',setup);
     b.codePart(inst,'loop','stop','Основной цикл',loop);

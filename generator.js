@@ -102,6 +102,10 @@ function createUbiXmlSixx(
   enableInput = false,
   options = {}
 ) {
+  // FIX14: retain Arduino String semantics when FLProg inserts text parameters.
+  const stringParams = window.ino2ubiStringParams.collect(variables, defines);
+  setupCode = window.ino2ubiStringParams.transform(setupCode, stringParams);
+  loopCode = window.ino2ubiStringParams.transform(loopCode, stringParams);
   setupCode = setupCode.split('\n').map(l => l.trimEnd()).join('\n');
   loopCode = loopCode.split('\n').map(l => l.trimEnd()).join('\n');
   if (enableInput) loopCode = 'if(En)\n{\n' + loopCode + '\n}';
@@ -215,7 +219,8 @@ function createUbiXmlSixx(
     }
     paramsXml += '\t\t\t\t<sixx.object sixx.id="' + adaptorId + '" sixx.type="InputsOutputsAdaptorForUserBlock" sixx.env="Arduino" >\n';
     paramsXml += '\t\t\t\t\t<sixx.object sixx.id="' + paramId + '" sixx.name="object" sixx.type="UserBlockParametr" sixx.env="Arduino" >\n';
-    paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + paramNameId + '" sixx.name="name" sixx.type="String" sixx.env="Core" >' + escapeHtml(varInfo.alias || name) + '</sixx.object>\n';
+    // FIX15: Code Basic resolves parameter references using the C++ identifier.
+    paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + paramNameId + '" sixx.name="name" sixx.type="String" sixx.env="Core" >' + escapeHtml(name) + '</sixx.object>\n';
     // Тип параметра как у FLProg-блока: простой StringDataType без \"class\" и instanceCollection
     paramsXml += createSixxDataTypeSimple(varInfo.type, paramTypeId);
     paramsXml += '\t\t\t\t\t\t<sixx.object sixx.name="hasDefaultValue" sixx.type="True" sixx.env="Core" />\n';
@@ -362,7 +367,9 @@ function createUbiXmlSixx(
     const funcRunsId = nextId(), funcRunsArrayId = nextId(), funcRunsLengthId = nextId();
     const funcRunsValuesId = nextId(), funcProtoId = nextId(), funcRetTypeId = nextId();
     const funcNameId = nextId(), funcParamsCollId = nextId();
-    const body = (funcInfo.body || '').split('\n').map(l => l.trimEnd()).join('\n');
+    const excludedParams = (funcInfo.parsed_params || []).map(p => p.name);
+    const body = window.ino2ubiStringParams.transform(funcInfo.body || '', stringParams, excludedParams)
+      .split('\n').map(l => l.trimEnd()).join('\n');
     const bodyEncoded = escapeCodeForSixx(body);
     functionsXml += '\t\t\t\t\t<sixx.object sixx.id="' + funcId + '" sixx.type="CodeUserBlockFunction" sixx.env="Arduino" >\n';
     functionsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + funcBodyId + '" sixx.name="functionBody" sixx.type="Text" sixx.env="Core" >\n';

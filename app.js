@@ -42,6 +42,17 @@
   const btnGenerate = document.getElementById('btnGenerate');
   const blockName = document.getElementById('blockName');
   const blockDesc = document.getElementById('blockDesc');
+  // Take the displayed block name from the leading documentation, not the description field.
+  function nameFromDescription(comment) {
+    const match = String(comment || '').match(/^\s*(?:\*\s*)?Название\s+блока\s*:\s*(.+?)\s*$/im);
+    if (!match) return '';
+    const original = match[1].trim();
+    // Keep the meaningful part of long Arduino identifiers without board suffixes.
+    const clean = original.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim()
+      .replace(/\s+(?:ESP32|ESP8266|Arduino)(?:\s+Core)?$/i, '').trim();
+    if (clean.length <= 24) return clean;
+    return clean.slice(0, 24).replace(/\s+\S*$/, '').trim() || clean.slice(0, 24);
+  }
   const enableInput = document.getElementById('enableInput');
   const exportMode = document.getElementById('exportMode');
   const professionalSettings = document.getElementById('professionalSettings');
@@ -457,7 +468,11 @@
         static_declarations: result.static_declarations || []
       };
       parsedSource = codeInput.value;
-      if (result.leading_comment) blockDesc.value = result.leading_comment;
+      if (result.leading_comment) {
+        blockDesc.value = result.leading_comment;
+        const extractedName = nameFromDescription(result.leading_comment);
+        if (extractedName) blockName.value = extractedName;
+      }
       renderVariables();
       renderFunctions();
       var v = Object.keys(state.variables).length;
