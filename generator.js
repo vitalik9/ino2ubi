@@ -197,7 +197,7 @@ function createUbiXmlSixx(
       paramsList.push({
         pos: d.position !== undefined ? d.position : 999999999,
         name: d.name,
-        info: { type: d.type || 'String', alias: d.name, default: d.value != null ? String(d.value) : '' }
+        info: { type: d.type || 'String', alias: d.alias || d.name, default: d.value != null ? String(d.value) : '' }
       });
     }
   });

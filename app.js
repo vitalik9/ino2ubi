@@ -53,7 +53,7 @@
     professionalSettings.hidden = !professional;
     btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
     formatHelp.textContent = professional ?
-      'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 8.' :
+      'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 9.8.0.' :
       'Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.';
   }
   exportMode.addEventListener('change', refreshExportMode);
@@ -621,7 +621,7 @@
         downloadBlob(blob, result.filename + '.ubi');
         setStatus('Создан Code Professional .ubi.'+
           (result.dependencies.length?' Используемые внешние библиотеки (проверьте их наличие в FLProg): '+result.dependencies.join(', ')+'.':'')+
-          ' Проверьте импорт и компиляцию в FLProg 8.');
+          ' Проверьте импорт и компиляцию в FLProg 9.8.0.');
       }).catch(function (e) {
         setStatus('Ошибка Code Professional: '+e.message,true);
         showEsp32Diagnostics({errors: [e.message],warnings: []},code);
@@ -642,7 +642,7 @@
         if (doc.querySelector('parsererror')) throw new Error('Недопустимый XML RemoteXY.');
         const blob = stringToUtf16LeBlob(built.xml.replace(/\r?\n/g, '\r\n'));
         downloadBlob(blob, (built.name || 'RemoteXY').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi');
-        setStatus('Экспериментальный RemoteXY .ubi создан; проверьте импорт и компиляцию в FLProg 8.');
+        setStatus('Экспериментальный RemoteXY .ubi создан; проверьте импорт и компиляцию в FLProg 9.8.0.');
       } catch (e) {
         setStatus(e.message, true);
         showEsp32Diagnostics({errors: [e.message], warnings: []}, code);
@@ -694,7 +694,7 @@
       const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
       downloadBlob(blob, filename);
       setStatus('Сохранён .ubi (' + integrity.objects + ' объектов SIXX).' +
-        ' Проверьте импорт и компиляцию в установленном FLProg 8.');
+        ' Проверьте импорт и компиляцию в установленном FLProg 9.8.0.');
     } catch (e) {
       showEsp32Diagnostics({ errors: ['Ошибка генерации .ubi: ' + e.message], warnings: [] }, code);
       setStatus('Ошибка генерации: ' + e.message, true);

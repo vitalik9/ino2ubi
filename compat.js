@@ -81,7 +81,7 @@
       const numeric = /^(?:\(?[+\-~]*\s*(?:\d|0[xX][a-fA-F0-9]))/.test(value) ||
         ['long', 'float'].includes(d.type);
       if (numeric)
-        addError('#define ' + name + ': числовой макрос несовместим с правилами ino2ubi / FLProg 8. Способ замены зависит от назначения макроса — см. «Как исправить» ниже.');
+        addError('#define ' + name + ': числовой макрос несовместим с правилами ino2ubi / FLProg 9.8.0. Способ замены зависит от назначения макроса — см. «Как исправить» ниже.');
     }
 
     // Check declarations already extracted by the parser, not references such

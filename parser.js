@@ -354,6 +354,15 @@ function parseGlobalSection(globalSection, functions) {
     return 'String'; // macro expression / symbolic constant is not a numeric default
   }
 
+  // A human-readable FLProg label may follow the role marker on the same line.
+  // The C++ identifier remains unchanged in generated code and code tags.
+  function roleLabel(line, role) {
+    const token = role === 'parameter' ? '(?:par|parameter)' : role === 'input' ? '(?:in|input)' : role === 'output' ? '(?:out|output)' : null;
+    if (!token) return '';
+    const match = line.match(new RegExp('\\/\\/\\s*' + token + '\\b\\s*(?::|[-–—])\\s*(.+)$', 'i'));
+    return match ? match[1].trim() : '';
+  }
+
   const defines = [];
   let lineOffset = 0;
   section.split('\n').forEach(line => {
@@ -372,7 +381,7 @@ function parseGlobalSection(globalSection, functions) {
     // Маркер роли для #define ищем в комментарии на той же строке: // par
     const role = /\/\/\s*(?:par|parameter)\b/i.test(rest) ? 'parameter' : 'global';
     const value = maskComments(rest).trim();
-    defines.push({ name, value, role, type: inferDefineType(value), position: lineOffset });
+    defines.push({ name, value, role, type: inferDefineType(value), alias: roleLabel(line, role) || name, position: lineOffset });
     lineOffset += line.length + 1;
   });
 
@@ -445,7 +454,7 @@ function parseGlobalSection(globalSection, functions) {
           type: varType,
           default: valuePart,
           role,
-          alias: varName,
+          alias: roleLabel(lineText, role) || varName,
           position: startIdx
         };
       });

@@ -20,7 +20,7 @@
         <div>
           <h1>ino2ubi</h1>
           <p class="tagline">Конвертер Arduino (.ino) в пользовательские блоки FLProg (.ubi)</p>
-          <p class="version"><strong>Цель: ESP32 · Arduino Core 2.0.17 · FLProg 8 Basic</strong></p>
+          <p class="version"><strong>Цель: ESP32 · Arduino Core 2.0.17 · FLProg 9.8.0 · Code Basic / Professional</strong></p>
           <p class="version">Версия <span id="versionSpan">—</span> (работает в браузере, без сервера)</p>
           <p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
         </div>
@@ -103,7 +103,7 @@
             <p class="hint">Если другие блоки FLProg используют EEPROM, согласуйте диапазоны адресов и инициализацию EEPROM.begin().</p>
           </div>
           <div class="field">
-            <label for="exportMode">Формат экспорта FLProg 8</label>
+            <label for="exportMode">Формат экспорта FLProg 9.8.0</label>
             <select id="exportMode" class="mode-select">
               <option value="basic">Code Basic — стандартный, проверенный</option>
               <option value="professional">Code Professional — экспериментальный</option>
@@ -133,7 +133,7 @@
       <h3>Справка по работе с конвертером</h3>
       <div class="help-content">
         <h4>Что делает конвертер</h4>
-        <p><strong>Профиль сборки:</strong> ESP32, Espressif Arduino Core 2.0.17 (API 2.x), обычный FLProg 8. Проверка не заменяет сборку на реальной плате.</p>
+        <p><strong>Профиль сборки:</strong> ESP32, Espressif Arduino Core 2.0.17 (API 2.x), обычный FLProg 9.8.0. Проверка не заменяет сборку на реальной плате.</p>
         <p>ino2ubi преобразует Arduino-скетчи (.ino) в пользовательские блоки (.ubi) для программы FLProg. Блок можно импортировать в FLProg и использовать как обычный пользовательский блок.</p>
 
         <h4>Пошаговая инструкция</h4>
@@ -159,9 +159,9 @@
         <pre>int sensorValue = 0;  // in — вход
 int result = 0;       // out — выход
 int threshold = 100;  // par — параметр</pre>
-        <p>Для старых файлов поддерживается <code>#define</code> с <code>//par</code>, но числовые <code>#define</code> в профиле FLProg 8 запрещены: они могут вызвать конфликт имён при генерации.</p>
+        <p>Для старых файлов поддерживается <code>#define</code> с <code>//par</code>, но числовые <code>#define</code> в профиле FLProg 9.8.0 запрещены: они могут вызвать конфликт имён при генерации.</p>
         <p>Подсказки внизу редактора учитывают назначение макроса: для задержки <code>#define MIN_PRD 5000</code> предлагается <code>5000UL</code> или <code>unsigned long</code>, а для размеров массивов — конкретная длина в квадратных скобках.</p>
-        <h4>Безопасные массивы FLProg 8</h4>
+        <h4>Безопасные массивы FLProg 9.8.0</h4>
         <p>Не используйте <code>#define BUFFER_SIZE 32</code>, <code>eventState[BUFFER_SIZE]</code> или вычисляемый размер <code>[2*16]</code>. Задавайте длину только числом, например:</p>
         <pre>static bool eventState[32] = {false}; // variable
 static uint32_t eventTime[32] = {0};  // variable

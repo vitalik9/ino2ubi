@@ -335,7 +335,7 @@
       if (['input','output'].includes(v.role)) b.inputOutput(inst,n,v);
       if (v.role==='parameter') b.parameter(inst,n,v);
     }
-    const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value}:d);
+    const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value,alias:d.alias||d.name}:d);
     for (const p of defines) if (p.role==='parameter' && !variables[p.name]) b.parameter(inst,p.name,p);
     // Keep ordinary helper functions inside UBI: a separate header is NOT required.
     const helpers=helperDefinitions(state);
@@ -364,6 +364,38 @@
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
     b.codePart(inst,'setup','stop','Инициализация',setup);
     b.codePart(inst,'loop','stop','Основной цикл',loop);
+    // FLProg uses *logical* SmallInteger IDs to identify library blocks and their
+    // nested components. The SIXX object ids/idrefs above are serialization-local
+    // and must remain untouched. Template logical IDs must NOT be exported verbatim.
+    // Regenerate all logical IDs once, after construction, and update the editor's
+    // expandElements references to keep the internal graph consistent.
+    const logicalNodes=Array.from(b.doc.getElementsByTagName('sixx.object')).filter(el=>
+      el.getAttribute(nameAttr)==='id' && el.getAttribute('sixx.type')==='SmallInteger');
+    const used=new Set();
+    const map=new Map();
+    function freshLogicalId() {
+      let id;
+      do { id=String(100000000+Math.floor(Math.random()*150000000)); } while (used.has(id));
+      used.add(id);
+      return id;
+    }
+    for (const el of logicalNodes) {
+      const oldId=el.textContent.trim();
+      if (!/^\d+$/.test(oldId)) throw new Error('Некорректный внутренний ID Professional-блока.');
+      const newId=freshLogicalId();
+      if (map.has(oldId)) throw new Error('В образце повторяется внутренний ID: '+oldId);
+      map.set(oldId,newId);
+      el.textContent=newId;
+    }
+    for (const el of b.doc.getElementsByTagName('sixx.object')) {
+      if (el.getAttribute('sixx.type')!=='UserCodeMiltiBlockEditorPositiomStore') continue;
+      const expanded=child(el,'expandElements');
+      if (!expanded) continue;
+      for (const ref of expanded.children) {
+        const replacement=map.get(ref.textContent.trim());
+        if (replacement) ref.textContent=replacement;
+      }
+    }
     const xml=new XMLSerializer().serializeToString(b.doc);
     const checked=new DOMParser().parseFromString(xml,'application/xml');
     ensureXml(checked);

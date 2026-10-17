@@ -1,7 +1,7 @@
 /**
  * Константы ino2ubi — конвертер Arduino в блоки FLProg
  */
-const VERSION = '2.16-CodeProfessional-PREVIEW-FIX4';
+const VERSION = '2.16-CodeProfessional-PREVIEW-FIX12';
 /** Дата последнего обновления (подставляется автоматически при push в main) */
 const LAST_UPDATED = '2026-10-17T11:30:00+03:00';
 
