@@ -221,7 +221,7 @@
       if (/[.]{3}|\(\s*\*/.test(fn.params || ''))
         warnings.push('Функция ' + fnName + ' использует параметры, требующие ручной проверки после конвертации.');
     }
-    if (/\bdelay\s*\(/.test(maskNonCode(code))) warnings.push('delay() блокирует выполнение других блоков FLProg.');
+    if (/\bdelay\s*\(/.test(code)) warnings.push('delay() блокирует выполнение других блоков FLProg.');
     if (/\bfor\s*\(\s*;\s*;\s*\)/.test(maskNonCode(code)))
       warnings.push('Бесконечный цикл может остановить выполнение схемы FLProg.');
     if (/^\s*#\s*(?:if|ifdef|ifndef|else|elif|endif)\b/m.test(code))

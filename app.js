@@ -99,17 +99,17 @@
     const board = esp32.checkEsp32Core2017(code, parsed);
     return {
       errors: [...new Set([...converter.errors, ...board.errors])],
-      warnings: [...new Set([...converter.warnings, ...board.warnings])]
+      warnings: [] // Режим отображения только ошибок; проверки ошибок сохранены.
     };
   }
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    const issues = window.ino2ubiDiagnostics.enrich(code, result);
+    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: [] });
     diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
     heading.textContent = 'Проверка ino2ubi / ESP32 Core 2.0.17: ' +
-      result.errors.length + ' ошибок, ' + result.warnings.length + ' предупреждений';
+      result.errors.length + ' ошибок';
     diagnosticsEl.appendChild(heading);
     if (!issues.length) {
       const ok = document.createElement('p');
@@ -125,7 +125,7 @@
       item.className = 'diagnostic-item diagnostic-' + issue.severity;
       const label = document.createElement('div');
       label.className = 'diagnostic-message';
-      label.textContent = (issue.severity === 'error' ? 'Ошибка: ' : 'Предупреждение: ') + issue.message;
+      label.textContent = 'Ошибка: ' + issue.message;
       item.appendChild(label);
       if (issue.line !== null) {
         const jump = document.createElement('button');
@@ -167,17 +167,8 @@
   }
 
   function remoteXYChecks(data) {
-    const c = data.connection;
-    const modeText = c.mode === 'ap' ?
-      'RemoteXY: определена точка доступа (AP). Создать её должен FLProg; блок RemoteXY только слушает TCP-порт ' + c.port + '. Режим не переключается.' :
-      c.mode === 'cloud' ?
-      'RemoteXY: определено облако (' + c.host + ':' + c.port + '). Интернет предоставляет FLProg; Cloud Token будет сохранён внутри .ubi.' :
-      'RemoteXY: определён Wi-Fi через роутер. FLProg подключает ESP32, RemoteXY слушает TCP-порт ' + c.port + '.';
-    return {errors: [], warnings: [
-      modeText,
-      'Требуется RemoteXY.h 4.1.11; SSID и пароль из Arduino-скетча игнорируются. Блок не вызывает WiFi.begin(), WiFi.mode() и WiFi.softAP().',
-      'Один блок RemoteXY на проект; проверьте компиляцию и подключение на ESP32. Интерфейс может требовать PRO-лицензию RemoteXY.'
-    ]};
+    // Подсказки RemoteXY не показываются в режиме «только ошибки».
+    return { errors: [], warnings: [] };
   }
 
   btnCheckEsp32.addEventListener('click', function () {
@@ -198,7 +189,7 @@
       }
       showEsp32Diagnostics(result, code);
       setStatus(result.errors.length ? 'Найдены ошибки ESP32/ino2ubi: ' + result.errors.length :
-        'Проверка ESP32 и ino2ubi: ошибок нет. Предупреждений: ' + result.warnings.length,
+        'Проверка ESP32 и ino2ubi: ошибок нет',
         result.errors.length > 0);
     } catch (error) {
       showEsp32Diagnostics({ errors: ['Ошибка разбора: ' + error.message], warnings: [] }, code);
@@ -253,7 +244,7 @@
           renderFunctions();
           const checks = runChecks(data.code, state);
           showEsp32Diagnostics(checks, data.code);
-          setStatus('Открыт проект ino2ubi: ' + file.name + '. Ошибок: ' + checks.errors.length + ', предупреждений: ' + checks.warnings.length, checks.errors.length > 0);
+          setStatus('Открыт проект ino2ubi: ' + file.name + '. Ошибок: ' + checks.errors.length, checks.errors.length > 0);
         }
       } else {
         blockName.value = data.name || 'Custom Block';
@@ -456,7 +447,7 @@
       const check = runChecks(code, state);
       showEsp32Diagnostics(check, code);
       setStatus('Найдено: переменных ' + v + ', функций ' + f + ', #include ' + inc + ', #define ' + def +
-        '. Ошибок: ' + check.errors.length + ', предупреждений: ' + check.warnings.length,
+        '. Ошибок: ' + check.errors.length,
         check.errors.length > 0);
     } catch (e) {
       parsedSource = null;
@@ -648,8 +639,7 @@
       const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
       downloadBlob(blob, filename);
       setStatus('Сохранён .ubi (' + integrity.objects + ' объектов SIXX).' +
-        (check.warnings.length ? ' Предупреждения: ' + check.warnings.join(' ') :
-          ' Проверьте импорт и компиляцию в установленном FLProg 8.'));
+        ' Проверьте импорт и компиляцию в установленном FLProg 8.');
     } catch (e) {
       showEsp32Diagnostics({ errors: ['Ошибка генерации .ubi: ' + e.message], warnings: [] }, code);
       setStatus('Ошибка генерации: ' + e.message, true);
