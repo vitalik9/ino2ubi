@@ -135,3 +135,13 @@ body {
 .mode-select { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:.55rem; border-radius:6px; }
 .professional-settings {padding:.8rem;border:1px solid var(--border);border-radius:8px;margin-bottom:1rem;}
 .professional-settings textarea {font-family:var(--font);font-size:.8rem;}
+
+/* FIX13: встроенная полная инструкция, читаемая без сети */
+.help-content details { margin-bottom: 0.75rem; }
+.help-content details > summary { cursor: pointer; padding: 0.65rem 0.85rem; background: var(--surface2); border-radius: 6px; line-height: 1.5; }
+.help-content details[open] > summary { margin-bottom: 0.75rem; }
+.help-content .full-guide-body { overflow-wrap: anywhere; }
+.help-content .full-guide-body h1 { font-size: 1.15rem; margin: 0 0 0.8rem; }
+.help-content .full-guide-body h2 { font-size: 1rem; margin: 1.2rem 0 0.5rem; }
+.help-content .full-guide-body li { font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.3rem; }
+.help-content .full-guide-body pre { white-space: pre; max-width: 100%; }
