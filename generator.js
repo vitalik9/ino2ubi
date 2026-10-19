@@ -104,8 +104,9 @@ function createUbiXmlSixx(
 ) {
   // FIX14: retain Arduino String semantics when FLProg inserts text parameters.
   const stringParams = window.ino2ubiStringParams.collect(variables, defines);
-  setupCode = window.ino2ubiStringParams.transform(setupCode, stringParams);
-  loopCode = window.ino2ubiStringParams.transform(loopCode, stringParams);
+  const numericParams = window.ino2ubiStringParams.collectNumeric(variables, defines);
+  setupCode = window.ino2ubiStringParams.transform(setupCode, stringParams, [], numericParams);
+  loopCode = window.ino2ubiStringParams.transform(loopCode, stringParams, [], numericParams);
   setupCode = setupCode.split('\n').map(l => l.trimEnd()).join('\n');
   loopCode = loopCode.split('\n').map(l => l.trimEnd()).join('\n');
   if (enableInput) loopCode = 'if(En)\n{\n' + loopCode + '\n}';
@@ -368,7 +369,7 @@ function createUbiXmlSixx(
     const funcRunsValuesId = nextId(), funcProtoId = nextId(), funcRetTypeId = nextId();
     const funcNameId = nextId(), funcParamsCollId = nextId();
     const excludedParams = (funcInfo.parsed_params || []).map(p => p.name);
-    const body = window.ino2ubiStringParams.transform(funcInfo.body || '', stringParams, excludedParams)
+    const body = window.ino2ubiStringParams.transform(funcInfo.body || '', stringParams, excludedParams, numericParams)
       .split('\n').map(l => l.trimEnd()).join('\n');
     const bodyEncoded = escapeCodeForSixx(body);
     functionsXml += '\t\t\t\t\t<sixx.object sixx.id="' + funcId + '" sixx.type="CodeUserBlockFunction" sixx.env="Arduino" >\n';

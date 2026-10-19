@@ -1,4 +1,5 @@
-/* FIX14: A // par String is emitted by FLProg as a C++ string literal, not an
+/* FIX17: Snapshot parameter expressions to preserve numeric and String usage.
+ * FIX14: A // par String is emitted by FLProg as a C++ string literal, not an
  * Arduino String object. Keep the source's String semantics in both formats.
  * This is a source-to-source transform for code SECTIONS, not macro expansion.
  */
@@ -14,9 +15,22 @@
     }
     return [...names];
   }
-  function transform(source, parameterNames, excludedNames) {
+  function collectNumeric(variables, defines) {
+    const names = [];
+    const add = (name, info) => {
+      if (!info || info.role !== 'parameter' || info.type === 'String' || !/^[A-Za-z_]\w*$/.test(name)) return;
+      if (!/^(?:bool|boolean|byte|uint8_t|int|int16_t|uint16_t|long|unsigned long|int32_t|uint32_t|float|double|char)$/.test(info.type)) return;
+      if (!names.includes(name)) names.push(name);
+    };
+    for (const [name, info] of Object.entries(variables || {})) add(name, info);
+    for (const d of defines || []) if (d) add(d.name, d);
+    return names;
+  }
+  function transform(source, parameterNames, excludedNames, numericNames) {
     const text = String(source || '');
-    const selected = new Set(parameterNames || []);
+    const strings = new Set(parameterNames || []);
+    const numerics = new Set(numericNames || []);
+    const selected = new Set([...strings, ...numerics]);
     for (const name of excludedNames || []) selected.delete(name);
     if (!text.trim() || selected.size === 0) return text;
     // maskNonCode is defined by parser.js; it blanks comments, strings and
@@ -37,7 +51,7 @@
       const before = masked.slice(0, pos).trimEnd();
       if (before.endsWith('.') || before.endsWith('->') || before.endsWith('::')) continue;
       if (!aliases.has(name)) {
-        const stem = '__ino2ubi_string_' + name;
+        const stem = (strings.has(name) ? '__ino2ubi_string_' : '__ino2ubi_numeric_') + name;
         let alias = stem, i = 2;
         while (new RegExp('\\b' + alias + '\\b').test(text) || [...aliases.values()].includes(alias)) alias = stem + '_' + i++;
         aliases.set(name, alias);
@@ -55,8 +69,10 @@
     // expression (which can expand to e.g. "pool.ntp.org"). One snapshot per
     // execution is intentional: updated parameter values are read every loop.
     // The scoped block also prevents collisions when a block is used twice.
-    const declarations = [...aliases].map(([name, alias]) => '  String ' + alias + ' = ' + name + ';').join('\n');
+    const declarations = [...aliases].map(([name, alias]) =>
+      '  ' + (strings.has(name) ? 'String ' : 'auto ') + alias + ' = ' + name + ';'
+    ).join('\n');
     return '{\n' + declarations + '\n' + rendered + '\n}';
   }
-  root.ino2ubiStringParams = {collect, transform};
+  root.ino2ubiStringParams = {collect, collectNumeric, transform};
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -321,6 +321,7 @@
     const state=options.state || {};
     // FIX14: FLProg parameter tags can expand to string literals, not String objects.
     const stringParams=window.ino2ubiStringParams.collect(state.variables, state.defines);
+    const numericParams=window.ino2ubiStringParams.collectNumeric(state.variables, state.defines);
     const name=String(options.name||'Custom Block').trim();
     const description=String(options.description||'').trim();
     textOf(required(main,'mainParametrs'),'folderName',name);
@@ -351,20 +352,56 @@
     const internal=helpers;
     const includes=(state.global_includes||[]).join('\n');
     const defineLines=(state.defines||[]).filter(d=>d.role!=='parameter').map(d=>'#define '+d.name+' '+(d.value||'')).join('\n');
-    const declarations=(state.extra_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||'')).join('\n');
+    // FIX18: Defensive guard for a FLProg 9.8.0 Professional crash at
+    // Arduino.DeclaringElement>>declaringTypeString.  The crash occurred while
+    // processing an imported MQTT block with constructor-initialized global
+    // library objects.  Without an exported failing UBI we cannot identify
+    // which SIXX field is invalid; refuse this unverified declaration shape
+    // rather than knowingly creating a block that can crash FLProg.
+    const unsafeCtorObjects=Object.entries(variables).filter(([n,v])=>
+      v && v.role==='variable' &&
+      /^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*$/.test(String(v.type||'')) &&
+      !RECOGNIZED.has(v.type) &&
+      /^\s*\(.*\)\s*$/.test(String(v.default||''))
+    );
+    if (unsafeCtorObjects.length) {
+      const names=unsafeCtorObjects.map(([n,v])=>v.type+' '+n).join(', ');
+      throw new Error('Code Professional: неподтверждённые объявления объектов с конструктором ('+names+'). FLProg 9.8.0 может аварийно завершиться (#declaringString). Экспорт остановлен для защиты проекта. Code Basic доступен; требуется проверенный образец Professional .ubi с такими объектами.');
+    }
+    // FIX19 (diagnostic): a PubSubClient transport is bound in setup(), not in a
+    // global constructor initializer. This preserves the PubSubClient API and
+    // avoids passing a cross-object constructor call through FLProg's declare
+    // section. This is NOT a generalized transformation for unknown C++ types.
+    const pubsubClientBindings=[];
+    // FIX19 avoids silently skipping constructor-like extra declarations.
+    // Known PubSubClient(Client&) is rewritten below. Other custom ctor types
+    // remain unchanged because a generic fallback can silently alter behavior.
+    const declarations=(state.extra_declarations||[]).map(x=>{
+      const line=typeof x==='string'?x:(x.code||x.text||'');
+      const ctor=line.trim().match(/^PubSubClient\s+([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)\s*;$/);
+      if (!ctor) return line;
+      pubsubClientBindings.push(ctor[1]+'.setClient('+ctor[2]+');');
+      return 'PubSubClient '+ctor[1]+';';
+    }).join('\n');
     const staticDecl=(state.static_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||'')).join('\n');
     let globalDecl=Object.entries(variables).filter(([,v])=>v.role==='variable').map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
     const headerInc=ownHpp && !includesFromSource.includes(headerName)?'#include "'+headerName+'"\n':'';
-    b.codePart(inst,'declare','stop','Библиотеки и объявления',[includes,headerInc,defineLines,declarations,staticDecl,globalDecl].filter(Boolean).join('\n'));
-    if (internal.length) {
-      b.codePart(inst,'function','neitral','Функции, использующие контакты',internal.map(([fn,f])=>{
-        const excluded=(f.parsed_params||[]).map(p=>p.name);
-        const body=window.ino2ubiStringParams.transform(f.body||'',stringParams,excluded);
-        return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
-      }).join('\n\n'));
-    }
-    const setup=window.ino2ubiStringParams.transform(options.setupCode||'',stringParams);
-    let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams);
+    // FIX20 (diagnostic): emit helper functions in the SAME declare code-part.
+    // FLProg 9.8.0 crashes at Arduino.DeclaringElement>>declaringTypeString
+    // with one extra function-section code part in the MQTT Professional UBI.
+    // Removing the separate function-section part tests this hypothesis while
+    // retaining full helper bodies and all generated parameter/variable tags.
+    const helperText=internal.map(([fn,f])=>{
+      const excluded=(f.parsed_params||[]).map(p=>p.name);
+      const body=window.ino2ubiStringParams.transform(f.body||'',stringParams,excluded,numericParams);
+      return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
+    }).join('\n\n');
+    b.codePart(inst,'declare','stop','Библиотеки, объявления и функции',
+      [includes,headerInc,defineLines,declarations,staticDecl,globalDecl,helperText].filter(Boolean).join('\n\n'));
+    const setup=[...pubsubClientBindings,
+      window.ino2ubiStringParams.transform(options.setupCode||'',stringParams,[],numericParams)
+    ].filter(Boolean).join('\n');
+    let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams,[],numericParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
     b.codePart(inst,'setup','stop','Инициализация',setup);
     b.codePart(inst,'loop','stop','Основной цикл',loop);
@@ -399,6 +436,17 @@
         const replacement=map.get(ref.textContent.trim());
         if (replacement) ref.textContent=replacement;
       }
+    }
+    // FIX18: check every serialized type reference has an actual definition.
+    const allNodes=Array.from(b.doc.getElementsByTagName('sixx.object'));
+    const allIds=new Set(allNodes.map(x=>x.getAttribute(idAttr)).filter(Boolean));
+    const unresolved=allNodes.filter(x=>x.getAttribute(refAttr) && !allIds.has(x.getAttribute(refAttr)));
+    if (unresolved.length) throw new Error('Code Professional: отсутствует SIXX-объект для ссылки '+unresolved[0].getAttribute(refAttr));
+    const typedNodes=allNodes.filter(x=>x.getAttribute('sixx.type')==='UserCodeMultiBlockInputOutput' || x.getAttribute('sixx.type')==='UserCodeMultiBlockStandartParametr');
+    for (const el of typedNodes) {
+      const dt=child(el,'type');
+      if (!dt || (!dt.getAttribute('sixx.type') && !dt.getAttribute(refAttr)))
+        throw new Error('Code Professional: у контакта или параметра отсутствует ссылка на тип данных.');
     }
     const xml=new XMLSerializer().serializeToString(b.doc);
     const checked=new DOMParser().parseFromString(xml,'application/xml');
