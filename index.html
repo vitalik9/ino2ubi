@@ -22,7 +22,9 @@
           <p class="tagline">Конвертер Arduino (.ino) в пользовательские блоки FLProg (.ubi)</p>
           <p class="version"><strong>Цель: ESP32 Core 2.0.17 / Arduino Uno, Nano, Mega 2560 · FLProg · Code Basic / Professional</strong></p>
           <p class="version">Версия <span id="versionSpan">—</span> (работает в браузере, без сервера)</p>
-          <p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
+          <p class="version">BLE (ESP32 Core 2.0.17): добавлена обработка одного BLE callback-класса, его переменных и MAC/RSSI-параметров. Проверка в установленном FLProg обязательна.</p>
+          <p class="version">Целочисленные параметры: поддерживаются литералы 60000UL, 123U, 42L, 42ULL с проверкой диапазона.
+          </p><p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
         </div>
         <button type="button" id="btnHelp" class="btn btn-secondary" title="Справка по работе">Справка</button>
       </div>
@@ -450,16 +452,18 @@ uint8_t bufferSize = 32;             // variable</pre>
   </div>
 
   <script src="constants.js"></script>
-  <script src="parser.js"></script>
-  <script src="string-params.js"></script>
-  <script src="generator.js"></script>
-  <script src="professional.js"></script>
+  <script src="parser.js?v=ble-20261101"></script>
+  <script src="string-params.js?v=ble-20261101"></script>
+  <script src="number-literals.js?v=numeric-20261101"></script>
+  <script src="ble-support.js?v=ble-20261101"></script>
+  <script src="generator.js?v=numeric-20261101"></script>
+  <script src="professional.js?v=numeric-20261101"></script>
   <script src="professional-template-data.js"></script>
-  <script src="compat.js"></script>
+  <script src="compat.js?v=numeric-20261101"></script>
   <script src="esp32.js"></script>
   <script src="avr.js"></script>
-  <script src="diagnostics.js"></script>
+  <script src="diagnostics.js?v=numeric-20261101"></script>
   <script src="remotexy.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=numeric-20261101"></script>
 </body>
 </html>

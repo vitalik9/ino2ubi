@@ -192,11 +192,31 @@
     return { errors, warnings };
   }
 
-  function validateConverterInput(code, parsed, enableInput) {
+  function validateConverterInput(code, parsed, enableInput, board) {
     const safety = checkArrayAndDefineSafety(code, parsed);
     const flow = checkSharedExecutionSafety(code);
     const loops = checkWhileSafety(code);
-    const errors = [...safety.errors, ...flow.errors, ...loops.errors];
+    const ble = root.ino2ubiBleSupport;
+    const bleIssues = ble ? ble.verifySource(code, parsed) : [];
+    const numberErrors = root.ino2ubiNumberLiterals.validateParameters(parsed,board || 'esp32');
+    const errors = [...safety.errors, ...flow.errors, ...loops.errors, ...numberErrors,
+      ...(parsed.ble_issues || []).map(i => i.message),
+      ...bleIssues.map(i => i.message)];
+    if (ble && /\b(?:class|struct)\s+[A-Za-z_]\w*\s*[^;{}]*\{/.test(maskNonCode(code)) && !(parsed.ble_callbacks || []).length && !(parsed.ble_issues || []).length)
+      errors.push('BLE/class: сохранённый проект создан устаревшим парсером. Нажмите «Парсить код» заново перед экспортом.');
+    // Saved projects may have edited roles/types after parsing; a callback
+    // must not silently capture a port that FLProg later substitutes.
+    for (const callback of parsed.ble_callbacks || []) {
+      for (const name of callback.captured || []) {
+        if (!parsed.variables[name] || parsed.variables[name].role !== 'variable')
+          errors.push('BLE/class: внутренняя переменная ' + name + ' была изменена на порт или удалена. Повторно разберите исходный .ino.');
+      }
+      for (const name of Object.keys(callback.parameters || {})) {
+        const info = parsed.variables[name] || (parsed.defines || []).find(d => d.name === name);
+        if (!info || info.role !== 'parameter')
+          errors.push('BLE/class: параметр ' + name + ' изменён или удалён. Повторно разберите исходный .ino.');
+      }
+    }
     const warnings = [...safety.warnings, ...flow.warnings, ...loops.warnings];
     if (!code.trim()) errors.push('Исходный код пуст.');
     if (!/\bvoid\s+setup\s*\(\s*\)\s*\{/m.test(code))

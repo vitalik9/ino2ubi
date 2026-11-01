@@ -124,7 +124,7 @@
 
   // All checks are run on «Парсить код», manual check and before export.
   function runChecks(code, parsed) {
-    const converter = compat.validateConverterInput(code, parsed, enableInput.checked);
+    const converter = compat.validateConverterInput(code, parsed, enableInput.checked, targetBoard.value);
     const board = targetBoard.value === 'esp32' ? esp32.checkEsp32Core2017(code, parsed) : avr.check(code, targetBoard.value);
     return {
       errors: [...new Set([...converter.errors, ...board.errors])],
@@ -473,7 +473,9 @@
         global_includes: result.global_includes || [],
         defines: result.defines || [],
         extra_declarations: result.extra_declarations || [],
-        static_declarations: result.static_declarations || []
+        static_declarations: result.static_declarations || [],
+        ble_callbacks: result.ble_callbacks || [],
+        ble_issues: result.ble_issues || []
       };
       parsedSource = codeInput.value;
       if (result.leading_comment) {
@@ -630,7 +632,7 @@
         if (!template) throw new Error('Шаблон Code Professional не загружен.');
         const result = window.ino2ubiProfessional.build({
           template, name:blockName.value.trim()||'Custom Block', description:blockDesc.value,
-          state, source:code, enableInput:enableInput.checked,
+          state, source:code, enableInput:enableInput.checked, targetBoard:targetBoard.value,
           setupCode: window.extractFunctionBody(code,'setup'),
           loopCode: window.extractFunctionBody(code,'loop'),
           additionalHeader:'', additionalHeaderFilename:''
@@ -706,7 +708,8 @@
         state.static_declarations,
         setupCode,
         loopCode,
-        enableInput.checked
+        enableInput.checked,
+        { singleInstance: (state.ble_callbacks || []).length > 0, bleCallbacks: state.ble_callbacks || [], targetBoard: targetBoard.value }
       );
       const integrity = compat.inspectGeneratedXml(xml);
       if (!integrity.valid) throw new Error('Повреждённые ссылки SIXX: ' + JSON.stringify(integrity));

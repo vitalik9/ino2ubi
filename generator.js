@@ -103,6 +103,15 @@ function createUbiXmlSixx(
   options = {}
 ) {
   // FIX14: retain Arduino String semantics when FLProg inserts text parameters.
+  const bleCallbacks = options.bleCallbacks || [];
+  const bleSupport = window.ino2ubiBleSupport;
+  const bleCaptured = new Set(bleCallbacks.flatMap(c => c.captured));
+  if (bleCallbacks.length && !bleSupport) throw new Error('Не загружен модуль BLE callback.');
+  const bleSnapshots = bleCallbacks.length ? bleSupport.snapshots(bleCallbacks) : '';
+  if (bleSnapshots) {
+    setupCode = bleSnapshots + '\n' + setupCode;
+    loopCode = bleSnapshots + '\n' + loopCode;
+  }
   const stringParams = window.ino2ubiStringParams.collect(variables, defines);
   const numericParams = window.ino2ubiStringParams.collectNumeric(variables, defines);
   setupCode = window.ino2ubiStringParams.transform(setupCode, stringParams, [], numericParams);
@@ -228,14 +237,13 @@ function createUbiXmlSixx(
     if (varInfo.type === 'String') {
       paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="stringDefaultValue" sixx.type="String" sixx.env="Core" >' + escapeHtml(defaultVal) + '</sixx.object>\n';
     } else {
-      try {
-        if (varInfo.type === 'float' || varInfo.type === 'double') {
-          paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="Float" sixx.env="Core" >' + escapeHtml(defaultVal) + '</sixx.object>\n';
-        } else {
-          paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="SmallInteger" sixx.env="Core" >' + escapeHtml(defaultVal) + '</sixx.object>\n';
-        }
-      } catch (_) {
-        paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="SmallInteger" sixx.env="Core" >0</sixx.object>\n';
+      if (varInfo.type === 'float' || varInfo.type === 'double') {
+        paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="Float" sixx.env="Core" >' + escapeHtml(defaultVal) + '</sixx.object>\n';
+      } else {
+        // Store the integer value, never the C++ suffix, in the SIXX numeric field.
+        // Invalid or overflowing literals must not silently become zero.
+        const normalized = window.ino2ubiNumberLiterals.normalizeInteger(defaultVal,varInfo.type,options.targetBoard || 'esp32',name);
+        paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="SmallInteger" sixx.env="Core" >' + escapeHtml(normalized) + '</sixx.object>\n';
       }
     }
     paramsXml += '\t\t\t\t\t\t<sixx.object sixx.name="hasUpRange" sixx.type="False" sixx.env="Core" />\n';
@@ -250,7 +258,7 @@ function createUbiXmlSixx(
   const setupPartId = nextId(), setupCodeId = nextId();
   const declarePartId = nextId(), declareCollId = nextId();
   let declareXml = '';
-  const varsList = Object.entries(variables).filter(([, info]) => info.role === 'variable');
+  const varsList = Object.entries(variables).filter(([name, info]) => info.role === 'variable' && !bleCaptured.has(name));
 
   (globalIncludes || []).forEach(inc => {
     const line = (inc || '').trim();
@@ -298,6 +306,18 @@ function createUbiXmlSixx(
     declareXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + declNameId + '" sixx.name="name" sixx.type="String" sixx.env="Core" >' + escapeHtml(namePart) + '</sixx.object>\n';
     declareXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + declLastId + '" sixx.name="lastPart" sixx.type="String" sixx.env="Core" >' + lastPart + '</sixx.object>\n';
     declareXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + declFirstId + '" sixx.name="firstPart" sixx.type="String" sixx.env="Core" >' + escapeHtml(firstPart) + '</sixx.object>\n';
+    declareXml += '\t\t\t\t\t</sixx.object>\n';
+  });
+
+  // BLE callback class must travel inside the SAME named FLProg declaration
+  // as its instance, and captured internal state must precede the class.
+  bleCallbacks.forEach(callback => {
+    const prefix = bleSupport.build(callback, variables);
+    const declId = nextId(), nameId = nextId(), lastId = nextId(), firstId = nextId();
+    declareXml += '\t\t\t\t\t<sixx.object sixx.id="' + declId + '" sixx.type="CodeUserBlockDeclareStandartBlock" sixx.env="Arduino" >\n';
+    declareXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + nameId + '" sixx.name="name" sixx.type="String" sixx.env="Core" >' + escapeHtml(callback.objectName) + '</sixx.object>\n';
+    declareXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + lastId + '" sixx.name="lastPart" sixx.type="String" sixx.env="Core" >;</sixx.object>\n';
+    declareXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + firstId + '" sixx.name="firstPart" sixx.type="String" sixx.env="Core" >' + escapeHtml(prefix) + '</sixx.object>\n';
     declareXml += '\t\t\t\t\t</sixx.object>\n';
   });
 

@@ -483,7 +483,7 @@ function parseArduinoCode(code) {
   }
   const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations] =
     parseGlobalSection(declarationsOnly, functions);
-  return {
+  const parsed = {
     leading_comment: leadingComment,
     variables,
     functions,
@@ -493,6 +493,19 @@ function parseArduinoCode(code) {
     extra_declarations: extraDeclarations,
     static_declarations: staticDeclarations
   };
+  if (typeof window !== 'undefined' && window.ino2ubiBleSupport) {
+    const ble = window.ino2ubiBleSupport.inspect(code, parsed);
+    parsed.ble_callbacks = ble.callbacks;
+    parsed.ble_issues = ble.issues;
+    // The class and its object are emitted as one named SIXX declaration.
+    // Do not emit the object a second time from extra_declarations.
+    const objects = new Set(ble.callbacks.map(c => c.objectName));
+    parsed.extra_declarations = parsed.extra_declarations.filter(stmt => {
+      if (ble.callbacks.some(c => stmt.trimStart().startsWith('class ' + c.className + ' '))) return false;
+      return ![...objects].some(name => new RegExp('\\b' + name + '\\b\\s*;\\s*$').test(stmt));
+    });
+  }
+  return parsed;
 }
 
 // Для GitHub Pages / standalone

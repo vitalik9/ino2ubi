@@ -47,8 +47,29 @@
   function locate(code, message) {
     const clean = mask(code);
     let m, idx = -1, advice = '';
-    if ((m = message.match(/^#define\s+([A-Za-z_]\w*)/))) {
-      idx = findByRegex(code, new RegExp('^[ \t]*#\\s*define\\s+' + escapeRegex(m[1]) + '\\b', 'm'));
+    if (/^BLE\//.test(message)) {
+      // The most reliable location comes from the same analysis that raised
+      // this diagnostic, including class source positions.
+      if (typeof window !== 'undefined' && window.ino2ubiBleSupport && window.parseArduinoCode) {
+        const parsed = window.parseArduinoCode(code);
+        const issues = [...(parsed.ble_issues || []), ...window.ino2ubiBleSupport.verifySource(code, parsed)];
+        const issue = issues.find(i => i.message === message);
+        if (issue && issue.line != null) {
+          const lines = code.split(/\r?\n/);
+          idx = lines.slice(0, issue.line - 1).reduce((sum, line) => sum + line.length + 1, 0);
+        }
+      }
+      advice = 'Проверьте BLE callback, объявления перед классом и совместимость Core 2.0.17; экспорт остановлен для защиты от ошибок компиляции.';
+    } else if ((m = message.match(/^Некорректное целочисленное значение параметра ([A-Za-z_]\w*):/))) {
+      const name = escapeRegex(m[1]);
+      // Prefer source // par line; fall back to matching #define or a variable.
+      const declaration = new RegExp('^[^\\n]*\\b' + name + '\\b[^\\n;]*;[^\\n]*//\\s*(?:par|parameter)\\b', 'm');
+      idx = findByRegex(code, declaration);
+      if (idx < 0) idx = findByRegex(code, new RegExp('^[ \\t]*#\\s*define\\s+' + name + '\\b', 'm'));
+      if (idx < 0) idx = findByRegex(code, new RegExp('\\b' + name + '\\b'));
+      advice = 'Используйте целочисленный литерал C++ с допустимым суффиксом (например, 60000UL) и значением в диапазоне объявленного типа. В .ubi суффикс удаляется только из числового поля.';
+    } else if ((m = message.match(/^#define\s+([A-Za-z_]\w*)/))) {
+      idx = findByRegex(code, new RegExp('^[ \\t]*#\\s*define\\s+' + escapeRegex(m[1]) + '\\b', 'm'));
       advice = numericDefineAdvice(code, m[1]);
     } else if ((m = message.match(/^Массив\s+([A-Za-z_]\w*)\[([^\]]*)\]/))) {
       idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\[\\s*' + escapeRegex(m[2]) + '\\s*\\]'));

@@ -40,7 +40,7 @@
       throw new Error('Образец Code Professional повреждён или недоступен.');
     }
   }
-  function createBuilder(template) {
+  function createBuilder(template, board) {
     const doc = new DOMParser().parseFromString(template, 'application/xml');
     ensureXml(doc);
     let next = Math.max(0, ...Array.from(doc.querySelectorAll('[sixx\\.id]')).map(n => Number(n.getAttribute(idAttr)) || 0)) + 1;
@@ -134,8 +134,8 @@
         value=value.replace(/[fF]$/, '');
         if (!Number.isFinite(Number(value))) throw new Error('Некорректное значение float параметра '+name+': '+value);
       }
-      if (numberType==='SmallInteger' && !isBoolean && !/^[+-]?\d+$/.test(value)) {
-        throw new Error('Некорректное целочисленное значение параметра '+name+': '+value);
+      if (numberType==='SmallInteger' && !isBoolean) {
+        value=root.ino2ubiNumberLiterals.normalizeInteger(value,info.type,board || 'esp32',name);
       }
       if (!isBoolean) {
         // As in working FLProg Professional UBI libraries: editable value input.
@@ -313,7 +313,7 @@
   }
   // Deliberately exported as a factory to make validation explicit.
   function build(options) {
-    const b=createBuilder(options.template);
+    const b=createBuilder(options.template, options.targetBoard || 'esp32');
     const main=required(b.doc.documentElement,'mainBlock');
     const instances=required(required(main,'blockInstancesLibrary'),'items');
     const inst=Array.from(instances.children).find(el=>el.getAttribute('sixx.type')==='UserCodeMultiBlockBlockInstance');
@@ -329,12 +329,17 @@
     textOf(inst,'label',name.slice(0,32));
     b.updateDescription(inst,description);
     const variables=Object.assign({},state.variables||{});
+    const bleCallbacks = state.ble_callbacks || [];
+    const ble = window.ino2ubiBleSupport;
+    const bleCaptured = new Set(bleCallbacks.flatMap(c => c.captured));
+    if (bleCallbacks.length && !ble) throw new Error('Не загружен модуль BLE callback.');
+    const bleSnapshots = bleCallbacks.length ? ble.snapshots(bleCallbacks) : '';
     if (options.enableInput) {
       if (variables.En && variables.En.role!=='input') throw new Error('En уже используется как переменная или параметр.');
       if (!variables.En) variables.En={role:'input',type:'boolean',alias:'En'};
     }
     for (const [n,v] of Object.entries(variables)) {
-      if (v.role==='variable') b.addVar(n);
+      if (v.role==='variable' && !bleCaptured.has(n)) b.addVar(n);
       if (['input','output'].includes(v.role)) b.inputOutput(inst,n,v);
       if (v.role==='parameter') b.parameter(inst,n,v);
     }
@@ -384,7 +389,8 @@
       return 'PubSubClient '+ctor[1]+';';
     }).join('\n');
     const staticDecl=(state.static_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||'')).join('\n');
-    let globalDecl=Object.entries(variables).filter(([,v])=>v.role==='variable').map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
+    let globalDecl=Object.entries(variables).filter(([n,v])=>v.role==='variable' && !bleCaptured.has(n)).map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
+    const bleDecl = bleCallbacks.map(cb => ble.build(cb, variables) + ' ' + cb.objectName + ';').join('\n\n');
     const headerInc=ownHpp && !includesFromSource.includes(headerName)?'#include "'+headerName+'"\n':'';
     // FIX20 (diagnostic): emit helper functions in the SAME declare code-part.
     // FLProg 9.8.0 crashes at Arduino.DeclaringElement>>declaringTypeString
@@ -397,11 +403,11 @@
       return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
     }).join('\n\n');
     b.codePart(inst,'declare','stop','Библиотеки, объявления и функции',
-      [includes,headerInc,defineLines,declarations,staticDecl,globalDecl,helperText].filter(Boolean).join('\n\n'));
+      [includes,headerInc,defineLines,staticDecl,globalDecl,bleDecl,declarations,helperText].filter(Boolean).join('\n\n'));
     const setup=[...pubsubClientBindings,
-      window.ino2ubiStringParams.transform(options.setupCode||'',stringParams,[],numericParams)
+      window.ino2ubiStringParams.transform([bleSnapshots, options.setupCode||''].filter(Boolean).join('\n'),stringParams,[],numericParams)
     ].filter(Boolean).join('\n');
-    let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams,[],numericParams);
+    let loop=window.ino2ubiStringParams.transform([bleSnapshots, options.loopCode||''].filter(Boolean).join('\n'),stringParams,[],numericParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
     b.codePart(inst,'setup','stop','Инициализация',setup);
     b.codePart(inst,'loop','stop','Основной цикл',loop);
