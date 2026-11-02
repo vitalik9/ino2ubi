@@ -23,6 +23,8 @@
           <p class="version"><strong>Цель: ESP32 Core 2.0.17 / Arduino Uno, Nano, Mega 2560 · FLProg · Code Basic / Professional</strong></p>
           <p class="version">Версия <span id="versionSpan">—</span> (работает в браузере, без сервера)</p>
           <p class="version">BLE (ESP32 Core 2.0.17): добавлена обработка одного BLE callback-класса, его переменных и MAC/RSSI-параметров. Проверка в установленном FLProg обязательна.</p>
+          <p class="version">Перед скачиванием .ubi выполняется сверка сохранённых секций с исходным .ino; расхождения блокируют экспорт. Code Professional проверяется частично.</p>
+          <p class="version">Проверка скрытых рисков: таймеры, блокировки, callback и аппаратные ресурсы. Предупреждения не блокируют экспорт.</p>
           <p class="version">Целочисленные параметры: поддерживаются литералы 60000UL, 123U, 42L, 42ULL с проверкой диапазона.
           </p><p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
         </div>
@@ -124,8 +126,9 @@
         </div>
 
         <button type="button" id="btnGenerate" class="btn btn-accent btn-block">Сгенерировать .ubi и скачать</button>
-        <p id="formatHelp" class="hint">Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.</p>
+        <p id="formatHelp" class="hint">Code Basic: сохраняется прежний формат .ubi; показываются ошибки и предупреждения о рисках выполнения.</p>
         <p id="status" class="status"></p>
+        <div id="roundtripReport" class="esp32-diagnostics" role="region" aria-label="Сверка исходника с UBI" aria-live="polite" hidden></div>
         <div id="esp32Diagnostics" class="esp32-diagnostics" role="region" aria-label="Результаты проверки кода" aria-live="polite" hidden></div>
       </section>
     </main>
@@ -451,20 +454,22 @@ uint8_t bufferSize = 32;             // variable</pre>
     </div>
   </div>
 
-  <script src="constants.js?v=20261102-a"></script>
-  <script src="parser.js?v=20261102-a"></script>
-  <script src="string-params.js?v=20261102-a"></script>
-  <script src="number-literals.js?v=20261102-a"></script>
-  <script src="ble-support.js?v=20261102-a"></script>
-  <script src="generator.js?v=20261102-a"></script>
-  <script src="professional.js?v=20261102-a"></script>
+  <script src="constants.js?v=20261102-runtime1"></script>
+  <script src="parser.js?v=20261102-runtime1"></script>
+  <script src="string-params.js?v=20261102-runtime1"></script>
+  <script src="number-literals.js?v=20261102-runtime1"></script>
+  <script src="ble-support.js?v=20261102-runtime1"></script>
+  <script src="generator.js?v=20261102-runtime1"></script>
+  <script src="professional.js?v=20261102-runtime1"></script>
   <script src="professional-template-data.js"></script>
-  <script src="conversion-safety.js?v=20261102-a"></script>
-  <script src="compat.js?v=20261102-a"></script>
+  <script src="conversion-safety.js?v=20261102-runtime1"></script>
+  <script src="runtime-safety.js?v=20261102-runtime1"></script>
+  <script src="compat.js?v=20261102-runtime1"></script>
   <script src="esp32.js"></script>
   <script src="avr.js"></script>
-  <script src="diagnostics.js?v=20261102-a"></script>
+  <script src="diagnostics.js?v=20261102-runtime1"></script>
   <script src="remotexy.js"></script>
-  <script src="app.js?v=20261102-a"></script>
+  <script src="roundtrip.js?v=20261102-verify1"></script>
+  <script src="app.js?v=20261102-verify1"></script>
 </body>
 </html>

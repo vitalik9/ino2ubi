@@ -200,9 +200,10 @@
     const bleIssues = ble ? ble.verifySource(code, parsed) : [];
     const numberErrors = root.ino2ubiNumberLiterals.validateParameters(parsed,board || 'esp32');
     const conversionIssues = root.ino2ubiConversionSafety ? root.ino2ubiConversionSafety.inspect(code, parsed) : [];
+    const runtime = root.ino2ubiRuntimeSafety ? root.ino2ubiRuntimeSafety.inspect(code, parsed, {board}) : {errors:[],warnings:[]};
     const errors = [...safety.errors, ...flow.errors, ...loops.errors, ...numberErrors,
       ...(parsed.ble_issues || []).map(i => i.message),
-      ...bleIssues.map(i => i.message), ...conversionIssues.map(i => i.message)];
+      ...bleIssues.map(i => i.message), ...conversionIssues.map(i => i.message), ...runtime.errors];
     if (ble && /\b(?:class|struct)\s+[A-Za-z_]\w*\s*[^;{}]*\{/.test(maskNonCode(code)) && !(parsed.ble_callbacks || []).length && !(parsed.ble_issues || []).length)
       errors.push('BLE/class: сохранённый проект создан устаревшим парсером. Нажмите «Парсить код» заново перед экспортом.');
     // Saved projects may have edited roles/types after parsing; a callback
@@ -218,7 +219,7 @@
           errors.push('BLE/class: параметр ' + name + ' изменён или удалён. Повторно разберите исходный .ino.');
       }
     }
-    const warnings = [...safety.warnings, ...flow.warnings, ...loops.warnings];
+    const warnings = [...safety.warnings, ...flow.warnings, ...loops.warnings, ...runtime.warnings];
     if (!code.trim()) errors.push('Исходный код пуст.');
     if (!/\bvoid\s+setup\s*\(\s*\)\s*\{/m.test(code))
       errors.push('Не найдена функция void setup() {...}.');
@@ -242,7 +243,8 @@
       if (/[.]{3}|\(\s*\*/.test(fn.params || ''))
         warnings.push('Функция ' + fnName + ' использует параметры, требующие ручной проверки после конвертации.');
     }
-    if (/\bdelay\s*\(/.test(code)) warnings.push('delay() блокирует выполнение других блоков FLProg.');
+    if (!root.ino2ubiRuntimeSafety && /\bdelay\s*\(/.test(maskNonCode(code)))
+      warnings.push('delay() блокирует выполнение других блоков FLProg.');
     if (/\bfor\s*\(\s*;\s*;\s*\)/.test(maskNonCode(code)))
       warnings.push('Бесконечный цикл может остановить выполнение схемы FLProg.');
     if (/^\s*#\s*(?:if|ifdef|ifndef|else|elif|endif)\b/m.test(code))

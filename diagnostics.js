@@ -47,7 +47,13 @@
   function locate(code, message) {
     const clean = mask(code);
     let m, idx = -1, advice = '';
-    if ((m = message.match(/^Проверка преобразования \[([A-Z-]+)\] \(строка (\d+)\):/))) {
+    if ((m = message.match(/^Риск выполнения \[([A-Z-]+)\] \(строка (\d+)\):/))) {
+      const number = Number(m[2]);
+      const lines = code.split(/\r?\n/);
+      if (number >= 1 && number <= lines.length)
+        idx = lines.slice(0,number - 1).reduce((sum,line)=>sum+line.length+1,0);
+      advice = 'Это потенциальная проблема выполнения, а не ошибка компиляции. Проверьте поведение на ESP32; экспорт не блокируется.';
+    } else if ((m = message.match(/^Проверка преобразования \[([A-Z-]+)\] \(строка (\d+)\):/))) {
       const number = Number(m[2]);
       const lines = code.split(/\r?\n/);
       if (number >= 1 && number <= lines.length)

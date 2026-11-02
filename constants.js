@@ -1,7 +1,7 @@
 /**
  * Константы ino2ubi — конвертер Arduino в блоки FLProg
  */
-const VERSION = '2.16-CONVERSION-AUDIT';
+const VERSION = '2.16-ROUNDTRIP-VERIFY';
 /** Дата последнего обновления (подставляется автоматически при push в main) */
 const LAST_UPDATED = '2026-11-02T00:00:00+02:00';
 

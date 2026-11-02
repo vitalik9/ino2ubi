@@ -40,6 +40,44 @@
   function targetLabel() { return targetBoard.value === 'esp32' ? 'ESP32 Core 2.0.17' : avr.boards[targetBoard.value].label; }
   const btnCheckEsp32 = document.getElementById('btnCheckEsp32');
   const diagnosticsEl = document.getElementById('esp32Diagnostics');
+  const roundtripEl = document.getElementById('roundtripReport');
+  function showRoundtrip(report) {
+    if (!roundtripEl) return;
+    roundtripEl.hidden = false;
+    roundtripEl.replaceChildren();
+    const heading = document.createElement('h3');
+    heading.textContent = 'Сверка .ino → .ubi: ' + (report.errors.length ? 'НАЙДЕНЫ РАСХОЖДЕНИЯ' : 'проверенные секции сохранены');
+    roundtripEl.appendChild(heading);
+    const summary = document.createElement('p');
+    summary.textContent = 'Режим: ' + report.mode + '. Успешных сверок: ' + report.verified.length + ', расхождений: ' + report.errors.length + '.';
+    roundtripEl.appendChild(summary);
+    for (const [items,title] of [[report.errors,'Ошибки'],[report.warnings,'Ограничения']]) {
+      if (!items.length) continue;
+      const sub = document.createElement('p');
+      sub.textContent = title + ':';
+      roundtripEl.appendChild(sub);
+      const ul = document.createElement('ul');
+      items.forEach(message => { const li = document.createElement('li'); li.textContent = message; ul.appendChild(li); });
+      roundtripEl.appendChild(ul);
+    }
+    const details = document.createElement('details');
+    const caption = document.createElement('summary');
+    caption.textContent = 'Показать сохранённые элементы (' + report.verified.length + ')';
+    details.appendChild(caption);
+    const ul = document.createElement('ul');
+    report.verified.forEach(message => {const li = document.createElement('li');li.textContent=message;ul.appendChild(li);});
+    details.appendChild(ul);roundtripEl.appendChild(details);
+  }
+  function verifyGenerated(xml,code,mode) {
+    if (!window.ino2ubiRoundtrip) throw new Error('Модуль сверки .ino и .ubi не загружен.');
+    const report = mode === 'professional' ?
+      window.ino2ubiRoundtrip.compareProfessional(xml,code,state,enableInput.checked) :
+      window.ino2ubiRoundtrip.compareBasic(xml,code,state,enableInput.checked,targetBoard.value);
+    showRoundtrip(report);
+    if (report.errors.length) throw new Error('Сверка .ino → .ubi обнаружила ' + report.errors.length + ' расхождений: ' + report.errors.slice(0,3).join(' '));
+    return report;
+  }
+
   const btnClear = document.getElementById('btnClear');
   const btnParse = document.getElementById('btnParse');
   const btnGenerate = document.getElementById('btnGenerate');
@@ -68,7 +106,7 @@
     btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
     formatHelp.textContent = professional ?
       'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 9.8.0.' :
-      'Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.';
+      'Code Basic: сохраняется прежний формат .ubi; перед экспортом показываются ошибки и предупреждения о рисках выполнения.';
   }
   exportMode.addEventListener('change', refreshExportMode);
   refreshExportMode();
@@ -128,22 +166,22 @@
     const board = targetBoard.value === 'esp32' ? esp32.checkEsp32Core2017(code, parsed) : avr.check(code, targetBoard.value);
     return {
       errors: [...new Set([...converter.errors, ...board.errors])],
-      warnings: [] // Режим отображения только ошибок; проверки ошибок сохранены.
+      warnings: [...new Set([...converter.warnings, ...board.warnings])]
     };
   }
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: [] });
+    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [] });
     diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
     heading.textContent = 'Проверка ino2ubi / ' + targetLabel() + ': ' +
-      result.errors.length + ' ошибок';
+      result.errors.length + ' ошибок, ' + (result.warnings || []).length + ' предупреждений';
     diagnosticsEl.appendChild(heading);
     if (!issues.length) {
       const ok = document.createElement('p');
       ok.className = 'diagnostic-ok';
-      ok.textContent = 'Известных несовместимостей не обнаружено. Это не заменяет компиляцию в FLProg.';
+      ok.textContent = 'Известных ошибок и предупреждений не обнаружено. Статический анализ не гарантирует работу на оборудовании.';
       diagnosticsEl.appendChild(ok);
       return;
     }
@@ -154,7 +192,7 @@
       item.className = 'diagnostic-item diagnostic-' + issue.severity;
       const label = document.createElement('div');
       label.className = 'diagnostic-message';
-      label.textContent = 'Ошибка: ' + issue.message;
+      label.textContent = (issue.severity === 'error' ? 'Ошибка: ' : 'Предупреждение: ') + issue.message;
       item.appendChild(label);
       if (issue.line !== null) {
         const jump = document.createElement('button');
@@ -609,6 +647,7 @@
   });
 
   btnGenerate.addEventListener('click', function () {
+    if (roundtripEl) {roundtripEl.hidden=true;roundtripEl.replaceChildren();}
     var code = codeInput.value;
     if (!code.trim()) {
       setStatus('Вставьте код Arduino', true);
@@ -642,6 +681,7 @@
         if (result.hpp) {
           throw new Error('Блоку требуется собственная библиотека .hpp; прямой экспорт одного .ubi невозможен без неё.');
         }
+        verifyGenerated(result.xml,code,'professional');
         const blob = new Blob([window.ino2ubiProfessional.utf16le(result.xml.replace(/\r?\n/g,'\r\n'))], {type:'application/octet-stream'});
         downloadBlob(blob, result.filename + '.ubi');
         setStatus('Создан Code Professional .ubi.'+
@@ -665,6 +705,7 @@
         if (!integrity.valid) throw new Error('Повреждены XML-ссылки: ' + JSON.stringify(integrity));
         const doc = new DOMParser().parseFromString(built.xml, 'application/xml');
         if (doc.querySelector('parsererror')) throw new Error('Недопустимый XML RemoteXY.');
+        if (roundtripEl) { roundtripEl.hidden=false; roundtripEl.textContent='RemoteXY: структурная сверка исходника с .ubi пока не реализована; проверены XML и SIXX-ссылки.'; }
         const blob = stringToUtf16LeBlob(built.xml.replace(/\r?\n/g, '\r\n'));
         downloadBlob(blob, (built.name || 'RemoteXY').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi');
         setStatus('Экспериментальный RemoteXY .ubi создан; проверьте импорт и компиляцию в FLProg 9.8.0.');
@@ -716,6 +757,7 @@
       // DOMParser checks nesting and entity escaping in addition to SIXX references.
       const doc = new DOMParser().parseFromString(xml, 'application/xml');
       if (doc.querySelector('parsererror')) throw new Error('Файл .ubi содержит недопустимый XML.');
+      verifyGenerated(xml,code,'basic');
       const blob = stringToUtf16LeBlob(xml.replace(/\r?\n/g, '\r\n'));
       const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
       downloadBlob(blob, filename);
