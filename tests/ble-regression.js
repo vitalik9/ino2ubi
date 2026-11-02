@@ -7,7 +7,7 @@ const dir = path.resolve(__dirname, '..');
 const ctx = {window:{}, crypto:require('crypto').webcrypto, console};
 ctx.window.window = ctx.window;
 vm.createContext(ctx);
-for (const f of ['constants.js','parser.js','string-params.js','number-literals.js','ble-support.js','generator.js','compat.js','diagnostics.js']) {
+for (const f of ['constants.js','parser.js','string-params.js','number-literals.js','ble-support.js','generator.js','conversion-safety.js','compat.js','diagnostics.js']) {
   vm.runInContext(fs.readFileSync(path.join(dir,f),'utf8'),ctx,{filename:f});
 }
 const api=ctx.window;

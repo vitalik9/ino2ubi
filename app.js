@@ -709,7 +709,7 @@
         setupCode,
         loopCode,
         enableInput.checked,
-        { singleInstance: (state.ble_callbacks || []).length > 0, bleCallbacks: state.ble_callbacks || [], targetBoard: targetBoard.value }
+        { singleInstance: window.ino2ubiConversionSafety.requiresSingleInstance(code, state), bleCallbacks: state.ble_callbacks || [], targetBoard: targetBoard.value }
       );
       const integrity = compat.inspectGeneratedXml(xml);
       if (!integrity.valid) throw new Error('Повреждённые ссылки SIXX: ' + JSON.stringify(integrity));
@@ -720,6 +720,8 @@
       const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
       downloadBlob(blob, filename);
       setStatus('Сохранён .ubi (' + integrity.objects + ' объектов SIXX).' +
+        (window.ino2ubiConversionSafety.requiresSingleInstance(code, state) ?
+          ' Блок владеет общим аппаратным ресурсом: используйте только один экземпляр.' : '') +
         ' Проверьте импорт и компиляцию в установленном FLProg 9.8.0.');
     } catch (e) {
       showEsp32Diagnostics({ errors: ['Ошибка генерации .ubi: ' + e.message], warnings: [] }, code);

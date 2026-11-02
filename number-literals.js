@@ -37,11 +37,37 @@
     else value = BigInt(clean);
     return match[1] === '-' ? -value : value;
   }
+  function parseCharacterLiteral(raw) {
+    const source=String(raw||'').trim();
+    if (!/^'(?:\\.|[^'\\])'$/.test(source) && !/^'\\(?:x[0-9a-fA-F]{1,2}|[0-7]{1,3})'$/.test(source))
+      throw new Error('ожидался одиночный символьный литерал char');
+    const inner=source.slice(1,-1);
+    if (inner[0] !== '\\') return BigInt(inner.codePointAt(0));
+    if (/^\\x[0-9a-fA-F]{1,2}$/.test(inner)) return BigInt('0x'+inner.slice(2));
+    if (/^\\[0-7]{1,3}$/.test(inner)) return BigInt('0o'+inner.slice(1));
+    const escapes={'n':10,'r':13,'t':9,'0':0,'\\':92,"'":39,'"':34,'a':7,'b':8,'f':12,'v':11};
+    if (!Object.prototype.hasOwnProperty.call(escapes,inner[1])) throw new Error('неподдерживаемая escape-последовательность char');
+    return BigInt(escapes[inner[1]]);
+  }
+  function normalizeBoolean(raw,name) {
+    const value=String(raw??'false').trim();
+    if (/^(?:true|1)$/i.test(value)) return '1';
+    if (/^(?:false|0)$/i.test(value)) return '0';
+    throw new Error('Некорректное логическое значение параметра '+name+': '+value+'. Допустимо true, false, 1 или 0.');
+  }
+  function normalizeFloat(raw,name) {
+    const value=String(raw??'0').trim();
+    if (!/^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)[fF]?$/.test(value))
+      throw new Error('Некорректное вещественное значение параметра '+name+': '+value+'. Ожидался конечный числовой литерал.');
+    const number=Number(value.replace(/[fF]$/,''));
+    if (!Number.isFinite(number)) throw new Error('Некорректное вещественное значение параметра '+name+': '+value+'. Переполнение.');
+    return value.replace(/[fF]$/,'');
+  }
   function normalizeInteger(raw, type, board, name) {
     const display = String(raw ?? '').trim();
     const actualType = String(type || '').trim();
     try {
-      const value = parseInteger(display);
+      const value = actualType === 'char' && display.startsWith("'") ? parseCharacterLiteral(display) : parseInteger(display);
       let bounds = actualType === 'int'
         ? (board && board !== 'esp32' ? [-32768n,32767n] : [-2147483648n,2147483647n])
         : decimalLimits[actualType];
@@ -57,6 +83,8 @@
   }
   function normalizeValue(raw, type, board, name) {
     if (integerTypes.has(type)) return normalizeInteger(raw, type, board, name);
+    if (type === 'bool' || type === 'boolean') return normalizeBoolean(raw,name);
+    if (type === 'float' || type === 'double') return normalizeFloat(raw,name);
     return String(raw ?? '');
   }
   function validateParameters(parsed, board) {
@@ -70,12 +98,12 @@
     }
     for (const {name,info} of items) {
       const type = String(info.type || '').trim();
-      if (!integerTypes.has(type)) continue;
+      if (!integerTypes.has(type) && !['bool','boolean','float','double'].includes(type)) continue;
       const raw = info.default == null || String(info.default).trim() === '' ? '0' : info.default;
-      try { normalizeInteger(raw,type,board,name); }
+      try { normalizeValue(raw,type,board,name); }
       catch (err) { errors.push(err.message); }
     }
     return errors;
   }
-  root.ino2ubiNumberLiterals = {parseInteger,normalizeInteger,normalizeValue,validateParameters};
+  root.ino2ubiNumberLiterals = {parseInteger,parseCharacterLiteral,normalizeBoolean,normalizeFloat,normalizeInteger,normalizeValue,validateParameters};
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -199,9 +199,10 @@
     const ble = root.ino2ubiBleSupport;
     const bleIssues = ble ? ble.verifySource(code, parsed) : [];
     const numberErrors = root.ino2ubiNumberLiterals.validateParameters(parsed,board || 'esp32');
+    const conversionIssues = root.ino2ubiConversionSafety ? root.ino2ubiConversionSafety.inspect(code, parsed) : [];
     const errors = [...safety.errors, ...flow.errors, ...loops.errors, ...numberErrors,
       ...(parsed.ble_issues || []).map(i => i.message),
-      ...bleIssues.map(i => i.message)];
+      ...bleIssues.map(i => i.message), ...conversionIssues.map(i => i.message)];
     if (ble && /\b(?:class|struct)\s+[A-Za-z_]\w*\s*[^;{}]*\{/.test(maskNonCode(code)) && !(parsed.ble_callbacks || []).length && !(parsed.ble_issues || []).length)
       errors.push('BLE/class: сохранённый проект создан устаревшим парсером. Нажмите «Парсить код» заново перед экспортом.');
     // Saved projects may have edited roles/types after parsing; a callback

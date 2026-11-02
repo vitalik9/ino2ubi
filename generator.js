@@ -221,8 +221,7 @@ function createUbiXmlSixx(
     const defaultValId = nextId(), commentId = nextId(), uuidParamId = nextId(), uuidAdaptId = nextId();
     const paramUuid = uuidv4(), adaptUuid = uuidv4();
     let defaultVal = varInfo.type === 'String' ? (varInfo.default || '') : (varInfo.default || '0');
-    if ((varInfo.type === 'bool' || varInfo.type === 'boolean') && ['true', '1'].includes(String(defaultVal).trim().toLowerCase())) defaultVal = '1';
-    else if ((varInfo.type === 'bool' || varInfo.type === 'boolean')) defaultVal = '0';
+    if (varInfo.type === 'bool' || varInfo.type === 'boolean') defaultVal = window.ino2ubiNumberLiterals.normalizeBoolean(defaultVal,name);
     // Для строковых параметров убираем внешние кавычки
     if (varInfo.type === 'String') {
       defaultVal = removeStringQuotes(String(defaultVal));
@@ -238,11 +237,12 @@ function createUbiXmlSixx(
       paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="stringDefaultValue" sixx.type="String" sixx.env="Core" >' + escapeHtml(defaultVal) + '</sixx.object>\n';
     } else {
       if (varInfo.type === 'float' || varInfo.type === 'double') {
+        defaultVal = window.ino2ubiNumberLiterals.normalizeFloat(defaultVal,name);
         paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="Float" sixx.env="Core" >' + escapeHtml(defaultVal) + '</sixx.object>\n';
       } else {
         // Store the integer value, never the C++ suffix, in the SIXX numeric field.
         // Invalid or overflowing literals must not silently become zero.
-        const normalized = window.ino2ubiNumberLiterals.normalizeInteger(defaultVal,varInfo.type,options.targetBoard || 'esp32',name);
+        const normalized = window.ino2ubiNumberLiterals.normalizeValue(defaultVal,varInfo.type,options.targetBoard || 'esp32',name);
         paramsXml += '\t\t\t\t\t\t<sixx.object sixx.id="' + defaultValId + '" sixx.name="numberDefaultValue" sixx.type="SmallInteger" sixx.env="Core" >' + escapeHtml(normalized) + '</sixx.object>\n';
       }
     }

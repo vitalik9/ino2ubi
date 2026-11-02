@@ -131,12 +131,12 @@
       const isBoolean=info.type==='bool' || info.type==='boolean';
       const numberType=info.type==='String'?'String':info.type==='float'||info.type==='double'?'Float':'SmallInteger';
       if (numberType==='Float') {
-        value=value.replace(/[fF]$/, '');
-        if (!Number.isFinite(Number(value))) throw new Error('Некорректное значение float параметра '+name+': '+value);
+        value=root.ino2ubiNumberLiterals.normalizeFloat(value,name);
       }
       if (numberType==='SmallInteger' && !isBoolean) {
         value=root.ino2ubiNumberLiterals.normalizeInteger(value,info.type,board || 'esp32',name);
       }
+      if (isBoolean) value=root.ino2ubiNumberLiterals.normalizeBoolean(value,name);
       if (!isBoolean) {
         // As in working FLProg Professional UBI libraries: editable value input.
         const species=ard(p,'parametrSpecies','UserCodeMultiBlockInputFieldParametrSpecies');

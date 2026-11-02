@@ -47,7 +47,13 @@
   function locate(code, message) {
     const clean = mask(code);
     let m, idx = -1, advice = '';
-    if (/^BLE\//.test(message)) {
+    if ((m = message.match(/^Проверка преобразования \[([A-Z-]+)\] \(строка (\d+)\):/))) {
+      const number = Number(m[2]);
+      const lines = code.split(/\r?\n/);
+      if (number >= 1 && number <= lines.length)
+        idx = lines.slice(0,number - 1).reduce((sum,line)=>sum+line.length+1,0);
+      advice = 'Исправьте указанную конструкцию в Arduino-скетче. Экспорт блокируется, чтобы избежать изменения смысла программы в FLProg.';
+    } else if (/^BLE\//.test(message)) {
       // The most reliable location comes from the same analysis that raised
       // this diagnostic, including class source positions.
       if (typeof window !== 'undefined' && window.ino2ubiBleSupport && window.parseArduinoCode) {
