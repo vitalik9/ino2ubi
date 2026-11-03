@@ -172,11 +172,14 @@
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [] });
+    const allIssues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [] });
+    const issues = window.ino2ubiDiagnostics.forDisplay(code, allIssues);
+    const visibleErrors = issues.filter(issue => issue.severity === 'error').length;
+    const visibleWarnings = issues.filter(issue => issue.severity === 'warning').length;
     diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
     heading.textContent = 'Проверка ino2ubi / ' + targetLabel() + ': ' +
-      result.errors.length + ' ошибок, ' + (result.warnings || []).length + ' предупреждений';
+      visibleErrors + ' ошибок, ' + visibleWarnings + ' предупреждений';
     diagnosticsEl.appendChild(heading);
     if (!issues.length) {
       const ok = document.createElement('p');
