@@ -354,6 +354,20 @@
     for (const p of defines) if (p.role==='parameter' && !variables[p.name]) b.parameter(inst,p.name,p);
     // Keep ordinary helper functions inside UBI: a separate header is NOT required.
     const helpers=helperDefinitions(state);
+    // FLProg merges declare sections of placed Code Professional instances.
+    // Each user helper therefore needs the same native per-instance UUID tag
+    // as an internal variable, both at definition and at every direct call.
+    // Library methods and C++ qualified members are excluded by partsFromCode.
+    const helperNames = new Set();
+    for (const [key, helper] of helpers) {
+      const helperName = helper.name || key;
+      if (!safeIdentifier(helperName)) throw new Error('Code Professional: неверное имя вспомогательной функции: ' + helperName);
+      if (helperNames.has(helperName) || variables[helperName] || defines.some(d => d.name === helperName)) {
+        throw new Error('Code Professional: имя функции конфликтует с переменной или параметром: ' + helperName);
+      }
+      helperNames.add(helperName);
+      b.addVar(helperName);
+    }
     const includesFromSource=externalIncludes(state).map(s=>s.match(/"([^"]+)"/)[1]);
     const providedName=String(options.additionalHeaderFilename||'').trim();
     const headerName=providedName && /^(?!\.)[\w.-]+\.hpp?$/i.test(providedName) ? providedName : sanitizeName(name)+'.hpp';

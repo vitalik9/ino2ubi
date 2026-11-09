@@ -40,7 +40,7 @@
       if(v.alias && v.alias!==name && (v.role==='input'||v.role==='output')) a[name]=v.alias;
     return a;
   }
-  function getParts(source,state,enable,mode) {
+  function getParts(source,state,enable,mode,forceSingle=false) {
     const strings=root.ino2ubiStringParams.collect(state.variables,state.defines);
     const nums=root.ino2ubiStringParams.collectNumeric(state.variables,state.defines);
     const ble=state.ble_callbacks||[];
@@ -49,23 +49,35 @@
     if(mode==='basic') {
       const aliases=buildAliases(state);
       const src=what=>root.ino2ubiCompat.replaceCodeIdentifiers(root.extractFunctionBody(source,what),aliases);
-      const setup=transform(snap?snap+'\n'+src('setup'):src('setup'));
-      let loop=transform(snap?snap+'\n'+src('loop'):src('loop'));
+      let setup=src('setup');
+      let loop=src('loop');
+      let isolated=false;
+      let scopedObjects=[];
+      if(root.ino2ubiBasicInstance) {
+        const funcs={};
+        for(const [key,f] of Object.entries(state.functions||{}))
+          funcs[key]=Object.assign({},f,{body:root.ino2ubiCompat.replaceCodeIdentifiers(f.body||'',aliases)});
+        const once=forceSingle||root.ino2ubiConversionSafety.requiresSingleInstance(source,state);
+        const result=root.ino2ubiBasicInstance.prepare(funcs,state.extra_declarations||[],setup,loop,{singleInstance:once});
+        setup=result.setup;loop=result.loop;isolated=result.isolated;scopedObjects=result.scopedObjects;
+      }
+      setup=transform(snap?snap+'\n'+setup:setup);
+      loop=transform(snap?snap+'\n'+loop:loop);
       if(enable)loop='if(En)\n{\n'+loop+'\n}';
-      return {setup,loop,strings,nums,transform,aliases};
+      return {setup,loop,strings,nums,transform,aliases,isolated,scopedObjects};
     }
     let setup=transform([snap,root.extractFunctionBody(source,'setup')].filter(Boolean).join('\n'));
     let loop=transform([snap,root.extractFunctionBody(source,'loop')].filter(Boolean).join('\n'));
     if(enable)loop='if (En) {\n'+loop+'\n}';
     return {setup,loop,strings,nums,transform};
   }
-  function compareBasic(xml, source, state, enable, board) {
+  function compareBasic(xml, source, state, enable, board, forceSingle=false) {
     const r=report('Code Basic');
     try {
       const {root:top,deref,value}=readXml(xml,r);
       const main=deref(named(top,'typeClass'));
       if(!main || attr(main,'type')!=='CodeUserBlock') throw new Error('Не найден CodeUserBlock.');
-      const parts=getParts(source,state,enable,'basic');
+      const parts=getParts(source,state,enable,'basic',forceSingle);
       const getCode=section=>{
         const parent=named(main,section+'CodePart');
         return parent ? value(parent,'code') : null;
@@ -86,7 +98,7 @@
       equal(r,'порядок #include',includes.map(x=>trim(x.replace(/^\s*#include\s*/,''))).join('\n'),actualIncludes.join('\n'));
       for(const def of state.defines||[])if(def.role!=='parameter')
         needed(r,'#define '+def.name,declare.some(d=>d.directive==='#define' && d.name===def.name && trim(d.last)===trim(def.value)));
-      for(const line of [...(state.static_declarations||[]),...(state.extra_declarations||[])]) {
+      for(const line of [...(state.static_declarations||[]),...(state.extra_declarations||[]).filter(line => !parts.scopedObjects.some(obj => obj.name === (String(line).match(/^\s*\w+\s+(\w+)/)||[])[1]))]) {
         // For declarations with constructors the split into first/name/last is not stable;
         // compare token sequences without insignificant whitespace.
         const simplified=s=>trim(s).replace(/\s+/g,'').replace(/&amp;/g,'&');
@@ -137,7 +149,7 @@
       // Function signatures and bodies are read back from actual encoded SIXX nodes.
       const fParent=named(main,'functionCodePart');
       const fList=byType(named(fParent,'code'),'CodeUserBlockFunction');
-      for(const [key,f] of Object.entries(state.functions||{})){
+      for(const [key,f] of Object.entries(parts.isolated?{}:(state.functions||{}))){
         const fn=fList.find(x=>value(named(x,'parsesFunctionName'),'name')===(f.name||key));
         needed(r,'функция '+(f.name||key),!!fn);
         if(!fn)continue;
@@ -155,6 +167,7 @@
         if(body===null)r.errors.push('Тело функции '+(f.name||key)+' отсутствует.');
         else equal(r,'тело функции '+(f.name||key),parts.transform(f.body||'',expectedParams.map(x=>x.name)),body);
       }
+      if(parts.isolated) needed(r,'изолированные функции не должны экспортироваться как глобальные',fList.length===0);
       r.warnings.push('Сверка сравнивает сохранённые секции .ubi; она не доказывает отсутствие ошибок времени выполнения или корректную сборку FLProg.');
     }catch(e){r.errors.push('Сверка Code Basic: '+e.message);}
     return r;

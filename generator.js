@@ -103,6 +103,14 @@ function createUbiXmlSixx(
   options = {}
 ) {
   // FIX14: retain Arduino String semantics when FLProg inserts text parameters.
+  const basicIsolation = window.ino2ubiBasicInstance && window.ino2ubiBasicInstance.prepare(
+    functions, extraDeclarations, setupCode, loopCode, options);
+  if (basicIsolation && basicIsolation.isolated) {
+    functions = basicIsolation.functions;
+    extraDeclarations = basicIsolation.extraDeclarations;
+    setupCode = basicIsolation.setup;
+    loopCode = basicIsolation.loop;
+  }
   const bleCallbacks = options.bleCallbacks || [];
   const bleSupport = window.ino2ubiBleSupport;
   const bleCaptured = new Set(bleCallbacks.flatMap(c => c.captured));

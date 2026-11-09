@@ -1,7 +1,7 @@
 /**
  * Константы ino2ubi — конвертер Arduino в блоки FLProg
  */
-const VERSION = '2.16-UIID-AUDIT-FIX';
+const VERSION = '2.16-BASIC-UNSIGNED-FIX';
 /** Дата последнего обновления (подставляется автоматически при push в main) */
 const LAST_UPDATED = '2026-11-09T00:00:00+02:00';
 
@@ -13,7 +13,7 @@ const PRIMITIVE_TYPES = new Set([
 const TYPE_MAPPING = {
   'int': 'IntegerDataType',
   'long': 'LongDataType',
-  'unsigned long': 'LongDataType',
+  'unsigned long': 'UnsignedLongDataType',
   'bool': 'BooleanDataType',
   'boolean': 'BooleanDataType',
   'float': 'FloatDataType',
@@ -25,7 +25,7 @@ const TYPE_MAPPING = {
   'int16_t': 'IntegerDataType',
   'uint16_t': 'IntegerDataType',
   'int32_t': 'LongDataType',
-  'uint32_t': 'LongDataType'
+  'uint32_t': 'UnsignedLongDataType'
 };
 
 function getTypeClassName(varType) {

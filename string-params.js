@@ -17,19 +17,23 @@
   }
   function collectNumeric(variables, defines) {
     const names = [];
+    const types = Object.create(null);
     const add = (name, info) => {
       if (!info || info.role !== 'parameter' || info.type === 'String' || !/^[A-Za-z_]\w*$/.test(name)) return;
       if (!/^(?:bool|boolean|byte|uint8_t|int|int16_t|uint16_t|long|unsigned long|int32_t|uint32_t|float|double|char)$/.test(info.type)) return;
       if (!names.includes(name)) names.push(name);
+      types[name] = info.type === 'boolean' ? 'bool' : info.type;
     };
     for (const [name, info] of Object.entries(variables || {})) add(name, info);
     for (const d of defines || []) if (d) add(d.name, d);
+    names.types = types;
     return names;
   }
   function transform(source, parameterNames, excludedNames, numericNames) {
     const text = String(source || '');
     const strings = new Set(parameterNames || []);
     const numerics = new Set(numericNames || []);
+    const numericTypes = numericNames && numericNames.types || {};
     const selected = new Set([...strings, ...numerics]);
     for (const name of excludedNames || []) selected.delete(name);
     if (!text.trim() || selected.size === 0) return text;
@@ -70,7 +74,7 @@
     // execution is intentional: updated parameter values are read every loop.
     // The scoped block also prevents collisions when a block is used twice.
     const declarations = [...aliases].map(([name, alias]) =>
-      '  ' + (strings.has(name) ? 'String ' : 'auto ') + alias + ' = ' + name + ';'
+      '  ' + (strings.has(name) ? 'String ' : (numericTypes[name] || 'auto') + ' ') + alias + ' = ' + name + ';'
     ).join('\n');
     return '{\n' + declarations + '\n' + rendered + '\n}';
   }

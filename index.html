@@ -119,6 +119,10 @@
           <div id="professionalSettings" class="professional-settings" hidden>
             <p class="hint">Один исходный скетч для обоих форматов. Код, помещающийся в UBI, остаётся внутри блока. Внешние заголовки проверяются как зависимости; отсутствующие библиотеки автоматически не выдумываются.</p>
           </div>
+          <div class="field checkbox-field" id="basicInstanceSetting">
+            <input type="checkbox" id="singleInstance" value="1">
+            <label for="singleInstance">Использовать блок только один раз (Code Basic)</label>
+          </div>
           <div class="field checkbox-field">
             <input type="checkbox" id="enableInput" value="1">
             <label for="enableInput">Вход En (условие выполнения кода в Loop: if(En))</label>
@@ -454,22 +458,23 @@ uint8_t bufferSize = 32;             // variable</pre>
     </div>
   </div>
 
-  <script src="constants.js?v=20261109-auditfix1"></script>
-  <script src="parser.js?v=20261109-auditfix1"></script>
-  <script src="string-params.js?v=20261109-auditfix1"></script>
-  <script src="number-literals.js?v=20261109-auditfix1"></script>
-  <script src="ble-support.js?v=20261109-auditfix1"></script>
-  <script src="generator.js?v=20261109-auditfix1"></script>
-  <script src="professional.js?v=20261109-auditfix1"></script>
+  <script src="constants.js?v=20261110-basicunsigned1"></script>
+  <script src="parser.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="string-params.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="number-literals.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="ble-support.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="basic-instance.js?v=20261109-basicmulti1"></script>
+  <script src="generator.js?v=20261110-basicunsigned1"></script>
+  <script src="professional.js?v=20261110-prof-helper-uuid1"></script>
   <script src="professional-template-data.js"></script>
-  <script src="conversion-safety.js?v=20261109-auditfix1"></script>
-  <script src="runtime-safety.js?v=20261109-auditfix1"></script>
-  <script src="compat.js?v=20261109-auditfix1"></script>
+  <script src="conversion-safety.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="runtime-safety.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="compat.js?v=20261110-prof-helper-uuid1"></script>
   <script src="esp32.js"></script>
   <script src="avr.js"></script>
-  <script src="diagnostics.js?v=20261109-auditfix1"></script>
+  <script src="diagnostics.js?v=20261110-prof-helper-uuid1"></script>
   <script src="remotexy.js"></script>
-  <script src="roundtrip.js?v=20261109-auditfix1"></script>
-  <script src="app.js?v=20261109-auditfix1"></script>
+  <script src="roundtrip.js?v=20261110-basicunsigned1"></script>
+  <script src="app.js?v=20261110-prof-helper-uuid1"></script>
 </body>
 </html>

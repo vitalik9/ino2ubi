@@ -9,10 +9,12 @@ int mode = 1; // variable
 int channel = 1; // variable
 int h = 2; // variable
 int length = 3; // variable
+int status = 4; // variable
+int size = 5; // variable
 bool outReady = false; // out
 String msg = ""; // variable
 esp_now_peer_info_t peer;
-void setup(){WiFi.mode(WIFI_STA); peer.channel = channel; outReady = (msg.length() > 0);}
+void setup(){WiFi.mode(WIFI_STA); peer.channel = channel; peerPtr->channel = channel; Config::status(); outReady = (msg.length() > 0 || WiFi.status() || msg.size());}
 void loop(){channel++;}
 '''
 with sync_playwright() as p:
@@ -30,11 +32,11 @@ with sync_playwright() as p:
     with page.expect_download(timeout=12000) as dl:page.click('#btnGenerate')
     xml=Path(dl.value.path()).read_bytes().decode('utf-16')
 
-    for literal in ['WiFi.mode(', '.channel = ', '.length()', '#include &lt;BluetoothSerial.h&gt;']:
+    for literal in ['WiFi.mode(', '.channel = ', '-&gt;channel = ', 'Config::status()', '.length()', 'WiFi.status()', '.size()', '#include &lt;BluetoothSerial.h&gt;']:
         assert literal in xml, f'Missing original library/member token {literal}'
-    for corrupt in ['WiFi.mode_', 'peer.channel_', 'msg.length_']:
+    for corrupt in ['WiFi.mode_', 'peer.channel_', 'peerPtr-&gt;channel_', 'Config::status_', 'msg.length_', 'WiFi.status_', 'msg.size_']:
         assert corrupt not in xml, f'Corrupted library/member token {corrupt}'
     assert 'UserCodeMultiBlockUseInCodeUUIDTag' in xml
     assert 'channel_' in xml
-    print('PASS professional UUID member/include regression: 7 checks')
+    print('PASS professional UUID member/include regression: 15 checks')
     browser.close()

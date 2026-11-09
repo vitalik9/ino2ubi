@@ -74,7 +74,7 @@
     if (!window.ino2ubiRoundtrip) throw new Error('Модуль сверки .ino и .ubi не загружен.');
     const report = mode === 'professional' ?
       window.ino2ubiRoundtrip.compareProfessional(xml,code,state,enableInput.checked) :
-      window.ino2ubiRoundtrip.compareBasic(xml,code,state,enableInput.checked,targetBoard.value);
+      window.ino2ubiRoundtrip.compareBasic(xml,code,state,enableInput.checked,targetBoard.value,singleInstance.checked);
     showRoundtrip(report);
     if (report.errors.length) throw new Error('Сверка .ino → .ubi обнаружила ' + report.errors.length + ' расхождений: ' + report.errors.slice(0,3).join(' '));
     return report;
@@ -97,6 +97,8 @@
     return clean.slice(0, 24).replace(/\s+\S*$/, '').trim() || clean.slice(0, 24);
   }
   const enableInput = document.getElementById('enableInput');
+  const singleInstance = document.getElementById('singleInstance');
+  const basicInstanceSetting = document.getElementById('basicInstanceSetting');
   const exportMode = document.getElementById('exportMode');
   const professionalSettings = document.getElementById('professionalSettings');
   // Professional uses the same source editor as Basic; no separate header input.
@@ -105,10 +107,11 @@
   function refreshExportMode() {
     const professional = exportMode.value === 'professional';
     professionalSettings.hidden = !professional;
+    if (basicInstanceSetting) basicInstanceSetting.hidden = professional;
     btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
     formatHelp.textContent = professional ?
       'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 9.8.0.' :
-      'Code Basic: сохраняется прежний формат .ubi; показываются только ошибки.';
+      'Code Basic: несколько экземпляров изолируются в поддерживаемых случаях; для сложных блоков выберите «только один раз». Показываются только ошибки.';
   }
   exportMode.addEventListener('change', refreshExportMode);
   refreshExportMode();
@@ -292,6 +295,7 @@
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;
+        singleInstance.checked = !!data.settings.singleInstance;
         exportMode.value = data.settings.exportMode === 'professional' ? 'professional' : 'basic';
 
 
@@ -379,6 +383,7 @@
     }
     const project = compat.makeProject(codeInput.value, state, {
       blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked,
+      singleInstance:singleInstance.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
       exportMode: exportMode.value
     });
@@ -482,6 +487,7 @@
         if (!blockName.value.trim() || blockName.value === 'Custom Block') blockName.value = 'RemoteXY_Greenhouse';
         blockDesc.value = built.description;
         enableInput.checked = false;
+        singleInstance.checked = true;
         renderVariables();
         renderFunctions();
         showEsp32Diagnostics(remoteXYChecks(built.data), code);
@@ -752,7 +758,7 @@
         setupCode,
         loopCode,
         enableInput.checked,
-        { singleInstance: window.ino2ubiConversionSafety.requiresSingleInstance(code, state), bleCallbacks: state.ble_callbacks || [], targetBoard: targetBoard.value }
+        { singleInstance: (singleInstance.checked || window.ino2ubiConversionSafety.requiresSingleInstance(code, state)), bleCallbacks: state.ble_callbacks || [], targetBoard: targetBoard.value }
       );
       const integrity = compat.inspectGeneratedXml(xml);
       if (!integrity.valid) throw new Error('Повреждённые ссылки SIXX: ' + JSON.stringify(integrity));
@@ -764,7 +770,7 @@
       const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
       downloadBlob(blob, filename);
       setStatus('Сохранён .ubi (' + integrity.objects + ' объектов SIXX).' +
-        (window.ino2ubiConversionSafety.requiresSingleInstance(code, state) ?
+        ((singleInstance.checked || window.ino2ubiConversionSafety.requiresSingleInstance(code, state)) ?
           ' Блок владеет общим аппаратным ресурсом: используйте только один экземпляр.' : '') +
         ' Проверьте импорт и компиляцию в установленном FLProg 9.8.0.');
     } catch (e) {
