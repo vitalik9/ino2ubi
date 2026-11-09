@@ -195,14 +195,21 @@
       const embedded=entries.map(x=>({section:value(x,'section')||'',text:decodeCode(x)}));
       const section=label=>embedded.filter(x=>x.section===label);
       const declarations=section('declare'),setups=section('setup'),loops=section('loop');
+      // The Professional exporter adds exactly one lexical scope per instance
+      // to avoid local-variable collisions when FLProg combines code parts.
+      // Ignore only this verified outer wrapper, never normalize arbitrary code.
+      const unwrapInstanceScope=text=>{
+        const t=trim(text);
+        return t.startsWith('{\n') && t.endsWith('\n}') ? trim(t.slice(2,-2)) : t;
+      };
       needed(r,'раздел declare',declarations.length>0);
       if(trim(parts.setup)){
         needed(r,'раздел setup',setups.length>0);
-        if(setups.length)equal(r,'setup() Professional',parts.setup,setups.map(x=>x.text).join('\n'));
+        if(setups.length)equal(r,'setup() Professional',parts.setup,unwrapInstanceScope(setups.map(x=>x.text).join('\n')));
       }
       if(trim(parts.loop)){
         needed(r,'раздел loop',loops.length>0);
-        if(loops.length)equal(r,'loop() Professional',parts.loop,loops.map(x=>x.text).join('\n'));
+        if(loops.length)equal(r,'loop() Professional',parts.loop,unwrapInstanceScope(loops.map(x=>x.text).join('\n')));
       }
       const declText=declarations.map(x=>x.text).join('\n');
       for(const inc of state.global_includes||[]) needed(r,'#include Professional '+inc,declText.includes(inc.trim()));

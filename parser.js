@@ -44,7 +44,7 @@ function maskNonCode(text) {
 
 function extractFunctionBody(code, funcName) {
   const escaped = funcName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp('void\\s+' + escaped + '\\s*\\(\\s*\\)\\s*\\{');
+  const pattern = new RegExp('void\\s+' + escaped + '\\s*\\(\\s*(?:void\\s*)?\\)\\s*\\{');
   const masked = maskNonCode(code);
   const match = masked.match(pattern);
   if (!match) return '';
@@ -388,6 +388,7 @@ function parseGlobalSection(globalSection, functions) {
   const variables = {};
   const extraDeclarations = [];
   const staticDeclarations = [];
+  const parseErrors = [];
 
   function normalizeType(typeName) {
     return typeName.trim().replace(/\s+/g, ' ');
@@ -431,6 +432,14 @@ function parseGlobalSection(globalSection, functions) {
     const stmtNoQual = qualifiers ? stmt.slice(qualifiers[0].length) : stmt;
     const isStatic = /^\s*static\b/.test(stmt);
 
+    // Unsupported C++ declarations must fail explicitly rather than be silently
+    // dropped or converted into the wrong FLProg scalar type.
+    const unsupportedType = /^(?:unsigned\s+(?:int|char|short|long\s+long)|signed\s+\w+|short\b|long\s+long\b|(?:u?int64_t|int8_t|size_t)\b)/.test(stmtNoQual);
+    const pointerOrReference = /^(?:[\w:<> ,]+?)\s*[*&]\s*[A-Za-z_]\w*/.test(stmtNoQual);
+    if (unsupportedType || pointerOrReference || /\b(?:const|volatile)\b/.test(qualifierText)) {
+      parseErrors.push('Неподдерживаемое объявление «' + stmt + '»: тип, указатель или квалификатор нельзя безопасно преобразовать. Используйте подтверждённый тип FLProg либо отдельный проверенный механизм объявлений.');
+      continue;
+    }
     const primitiveMatch = stmtNoQual.match(PRIMITIVE_TYPE_REGEX);
     if (primitiveMatch) {
       const varType = normalizeType(primitiveMatch[1]);
@@ -460,10 +469,18 @@ function parseGlobalSection(globalSection, functions) {
       });
       continue;
     }
-    if (/^[A-Za-z_][A-Za-z0-9_:<>]*\s+.+$/s.test(stmt)) extraDeclarations.push(stmt + ';');
+    // Keep complex global declarations only when their original C++ text is intact.
+    // Never silently discard a statement or silently ignore an FLProg pin role.
+    if (role !== 'variable') {
+      parseErrors.push('Невозможно создать // ' + role + ' для объявления «' + stmt + '»: тип не поддерживается контактами FLProg.');
+    } else if (/^[A-Za-z_][A-Za-z0-9_:<> ,]*\s+.+$/s.test(stmt)) {
+      extraDeclarations.push(stmt + ';');
+    } else {
+      parseErrors.push('Глобальное объявление не распознано и не будет безопасно экспортировано: «' + stmt + '».');
+    }
   }
 
-  return [variables, globalIncludes, defines, extraDeclarations, staticDeclarations];
+  return [variables, globalIncludes, defines, extraDeclarations, staticDeclarations, parseErrors];
 }
 
 function parseArduinoCode(code) {
@@ -481,7 +498,7 @@ function parseArduinoCode(code) {
         declarationsOnly.slice(end);
     }
   }
-  const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations] =
+  const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations, parseErrors] =
     parseGlobalSection(declarationsOnly, functions);
   const parsed = {
     leading_comment: leadingComment,
@@ -491,7 +508,8 @@ function parseArduinoCode(code) {
     global_includes: globalIncludes,
     defines,
     extra_declarations: extraDeclarations,
-    static_declarations: staticDeclarations
+    static_declarations: staticDeclarations,
+    parse_errors: parseErrors
   };
   if (typeof window !== 'undefined' && window.ino2ubiBleSupport) {
     const ble = window.ino2ubiBleSupport.inspect(code, parsed);

@@ -172,9 +172,7 @@
         const local = new RegExp('\\b' + escapeRegex(m[1]) + '\\s*(?:\\.|->)\\s*' + escapeRegex(m[2]) + '\\s*\\(').exec(maskedLines[lineNumber - 1]);
         if (local) idx += local.index;
       }
-      advice = m[2] === 'getString'
-        ? 'Если тело ответа не требуется, не вызывайте getString(). Если требуется — учитывайте время чтения и ограничивайте ожидание; тайм-аут не делает чтение асинхронным.'
-        : 'Это синхронный сетевой вызов. Если другие блоки должны работать без задержек, используйте асинхронный способ или отдельную FreeRTOS-задачу с безопасным обменом данными; тайм-аут лишь ограничивает ожидание.';
+      advice = 'Если другие блоки должны работать непрерывно, вынесите ожидание сети в отдельную FreeRTOS-задачу с безопасной передачей результатов или используйте действительно неблокирующий клиент. Тайм-аут лишь ограничивает длительность ожидания и не делает вызов асинхронным.';
     } else if ((m = message.match(/^Несколько потенциально блокирующих сетевых вызовов в loop\(\) \(начиная со строки (\d+)\)/))) {
       const lineNumber = Number(m[1]);
       const sourceLines = code.split('\n');
@@ -221,57 +219,5 @@
     }
     return issues;
   }
-  // Presentation-only de-duplication. Keep every original diagnostic in the
-  // analyzer result so export validation and future analysis are unchanged.
-  // The ESP32 preflight reports the concrete HTTP call, while runtime-safety
-  // also reports generic BLOCKING-IO at the same location. Show the more
-  // specific warning, without hiding unrelated blocking operations.
-  function forDisplay(source, issues) {
-    const list = Array.isArray(issues) ? issues : [];
-    const code = String(source || '');
-    const maskedLines = mask(code).split(/\r?\n/);
-    const detailRe = /^Сетевой вызов ([A-Za-z_]\w*)\.([A-Za-z_]\w*)\(\) на строке (\d+):/;
-    const genericRe = /^Риск выполнения \[BLOCKING-IO\] \(строка (\d+)\):/;
-    const summaryRe = /^Несколько потенциально блокирующих сетевых вызовов в loop\(\) \(начиная со строки (\d+)\): обнаружено (\d+) операций\./;
-    const detailsByLine = new Map();
-    const details = [];
-    for (const issue of list) {
-      if (issue.severity !== 'warning') continue;
-      const m = detailRe.exec(issue.message);
-      if (!m) continue;
-      const detail = {receiver:m[1],method:m[2],line:Number(m[3])};
-      if (!detailsByLine.has(detail.line)) detailsByLine.set(detail.line, []);
-      detailsByLine.get(detail.line).push(detail);
-      details.push(detail);
-    }
-    // Reflect the first operation selected by runtime-safety.js, which emits
-    // a single generic warning for each source line. Do not suppress a
-    // pulseIn()/other blocking call merely because an HTTP call is nearby.
-    const runtimeOperationRe = /\b(?:pulseIn|pulseInLong|readStringUntil|readBytesUntil|waitForConnectResult)\s*\(|\b([A-Za-z_]\w*)\s*(?:\.|->)\s*(GET|POST|PUT|connect|readString|readStringUntil|readBytesUntil|waitForConnectResult)\s*\(/g;
-    function genericCovered(line) {
-      const known = detailsByLine.get(line);
-      if (!known || !known.length || !maskedLines[line-1]) return false;
-      runtimeOperationRe.lastIndex = 0;
-      const first = runtimeOperationRe.exec(maskedLines[line-1]);
-      if (!first || !first[1]) return false;
-      return known.some(item => item.receiver === first[1] && item.method === first[2]);
-    }
-    return list.filter(issue => {
-      if (issue.severity !== 'warning') return true;
-      let m = genericRe.exec(issue.message);
-      if (m) return !genericCovered(Number(m[1]));
-      m = summaryRe.exec(issue.message);
-      if (m) {
-        const firstLine = Number(m[1]), count = Number(m[2]);
-        // Only remove a redundant summary when the same number of concrete
-        // operations are represented individually from its starting line.
-        // Otherwise preserve the summary (no information should be hidden).
-        const covered = details.filter(item => item.line >= firstLine);
-        return !(count >= 2 && covered.length === count && covered.some(item => item.line === firstLine));
-      }
-      return true;
-    });
-  }
-
-  root.ino2ubiDiagnostics = { enrich, locate, forDisplay };
+  root.ino2ubiDiagnostics = { enrich, locate };
 })(typeof window !== 'undefined' ? window : globalThis);

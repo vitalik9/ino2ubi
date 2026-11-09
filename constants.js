@@ -1,9 +1,9 @@
 /**
  * Константы ino2ubi — конвертер Arduino в блоки FLProg
  */
-const VERSION = '2.16-ROUNDTRIP-VERIFY';
+const VERSION = '2.16-UIID-AUDIT-FIX';
 /** Дата последнего обновления (подставляется автоматически при push в main) */
-const LAST_UPDATED = '2026-11-02T00:00:00+02:00';
+const LAST_UPDATED = '2026-11-09T00:00:00+02:00';
 
 const PRIMITIVE_TYPES = new Set([
   'int', 'long', 'unsigned long', 'bool', 'boolean', 'float', 'double',

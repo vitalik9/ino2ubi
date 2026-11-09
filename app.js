@@ -43,15 +43,17 @@
   const roundtripEl = document.getElementById('roundtripReport');
   function showRoundtrip(report) {
     if (!roundtripEl) return;
-    roundtripEl.hidden = false;
     roundtripEl.replaceChildren();
+    // Successful roundtrip verification remains active but does not clutter the UI.
+    roundtripEl.hidden = !report.errors.length;
+    if (!report.errors.length) return;
     const heading = document.createElement('h3');
     heading.textContent = 'Сверка .ino → .ubi: ' + (report.errors.length ? 'НАЙДЕНЫ РАСХОЖДЕНИЯ' : 'проверенные секции сохранены');
     roundtripEl.appendChild(heading);
     const summary = document.createElement('p');
     summary.textContent = 'Режим: ' + report.mode + '. Успешных сверок: ' + report.verified.length + ', расхождений: ' + report.errors.length + '.';
     roundtripEl.appendChild(summary);
-    for (const [items,title] of [[report.errors,'Ошибки'],[report.warnings,'Ограничения']]) {
+    for (const [items,title] of [[report.errors,'Ошибки']]) {
       if (!items.length) continue;
       const sub = document.createElement('p');
       sub.textContent = title + ':';
@@ -106,7 +108,7 @@
     btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
     formatHelp.textContent = professional ?
       'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 9.8.0.' :
-      'Code Basic: сохраняется прежний формат .ubi; перед экспортом показываются ошибки и предупреждения о рисках выполнения.';
+      'Code Basic: сохраняется прежний формат .ubi; показываются только ошибки.';
   }
   exportMode.addEventListener('change', refreshExportMode);
   refreshExportMode();
@@ -172,22 +174,15 @@
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    const allIssues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [] });
-    const issues = window.ino2ubiDiagnostics.forDisplay(code, allIssues);
-    const visibleErrors = issues.filter(issue => issue.severity === 'error').length;
-    const visibleWarnings = issues.filter(issue => issue.severity === 'warning').length;
-    diagnosticsEl.hidden = false;
+    // Keep validation intact but display only actual errors, never warnings.
+    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: [] })
+      .filter(issue => issue.severity === 'error');
+    diagnosticsEl.hidden = issues.length === 0;
+    if (!issues.length) return;
     const heading = document.createElement('strong');
     heading.textContent = 'Проверка ino2ubi / ' + targetLabel() + ': ' +
-      visibleErrors + ' ошибок, ' + visibleWarnings + ' предупреждений';
+      issues.length + ' ошибок';
     diagnosticsEl.appendChild(heading);
-    if (!issues.length) {
-      const ok = document.createElement('p');
-      ok.className = 'diagnostic-ok';
-      ok.textContent = 'Известных ошибок и предупреждений не обнаружено. Статический анализ не гарантирует работу на оборудовании.';
-      diagnosticsEl.appendChild(ok);
-      return;
-    }
     const list = document.createElement('div');
     list.className = 'diagnostic-list';
     for (const issue of issues) {
@@ -195,7 +190,7 @@
       item.className = 'diagnostic-item diagnostic-' + issue.severity;
       const label = document.createElement('div');
       label.className = 'diagnostic-message';
-      label.textContent = (issue.severity === 'error' ? 'Ошибка: ' : 'Предупреждение: ') + issue.message;
+      label.textContent = 'Ошибка: ' + issue.message;
       item.appendChild(label);
       if (issue.line !== null) {
         const jump = document.createElement('button');
@@ -516,7 +511,8 @@
         extra_declarations: result.extra_declarations || [],
         static_declarations: result.static_declarations || [],
         ble_callbacks: result.ble_callbacks || [],
-        ble_issues: result.ble_issues || []
+        ble_issues: result.ble_issues || [],
+        parse_errors: result.parse_errors || []
       };
       parsedSource = codeInput.value;
       if (result.leading_comment) {
@@ -689,7 +685,10 @@
         downloadBlob(blob, result.filename + '.ubi');
         setStatus('Создан Code Professional .ubi.'+
           (result.dependencies.length?' Используемые внешние библиотеки (проверьте их наличие в FLProg): '+result.dependencies.join(', ')+'.':'')+
-          ' Проверьте импорт и компиляцию в FLProg 9.8.0.');
+          ' Проверьте импорт и компиляцию в FLProg 9.8.0.'+
+          (window.ino2ubiConversionSafety.requiresSingleInstance(code,state) ?
+            ' ВАЖНО: обнаружен общий ресурс; без проверенного механизма разделения используйте один экземпляр блока.' :
+            ' UUID для нескольких экземпляров требует проверки в FLProg.'));
       }).catch(function (e) {
         setStatus('Ошибка Code Professional: '+e.message,true);
         showEsp32Diagnostics({errors: [e.message],warnings: []},code);

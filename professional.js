@@ -95,6 +95,8 @@
       return n;
     }
     const userIO = new Map(), userParams = new Map(), userVars = new Set();
+    // Native per-instance UUID tags apply to internal globals, including simple
+    // static/array declarations imported from the Arduino sketch.
     let currentInstance=null;
     function inputOutput(instance, name, info) {
       if (!safeIdentifier(name)) throw new Error('Неверное имя контакта C++: ' + name);
@@ -246,9 +248,14 @@
       const source=String(text || '');
       if (!symbols.length) {items.appendChild(plain(source));return;}
       const regex=new RegExp('\\b('+symbols.sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
-      const masked=typeof maskNonCode==='function'?maskNonCode(source):source;
+      const masked=(typeof maskNonCode==='function'?maskNonCode(source):source)
+        .replace(/^[ \t]*#[^\n]*/gm, line => line.replace(/[^\n]/g,' '));
       let cursor=0, match;
       while ((match=regex.exec(masked))!==null) {
+        // Do not rewrite object members, methods, or qualified names.
+        // A UUID is only for the block's own identifiers, never library APIs.
+        const prefix=masked.slice(0,match.index);
+        if (/(?:\.|->|::)\s*$/.test(prefix)) continue;
         // `maskComments` keeps literal strings but does not blank them: do not touch quoted strings.
         const before=source.slice(cursor,match.index);
         items.appendChild(plain(before));
@@ -389,6 +396,21 @@
       return 'PubSubClient '+ctor[1]+';';
     }).join('\n');
     const staticDecl=(state.static_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||'')).join('\n');
+    // FLProg resolves UserCodeMultiBlockUseInCodeUUIDTag separately for every
+    // placed instance. Add it to internal declarations AND their references.
+    // Do not tag external objects, API names, #define values or IO parameters.
+    const instanceScopedDeclarations=[...(state.static_declarations||[]),...(state.extra_declarations||[])];
+    for (const entry of instanceScopedDeclarations) {
+      const statement=String(typeof entry==='string'?entry:(entry.code||entry.text||'')).trim();
+      if (!statement.endsWith(';') || /^#/.test(statement)) continue;
+      const lhs=statement.split(/=(?!=)/,1)[0].replace(/;\s*$/,'').trim();
+      // Simple scalar and array declarators only. Do not rewrite constructor
+      // expressions, function prototypes, multiple declarators or pointers.
+      const matched=lhs.match(/^(?:(?:static|const|volatile|unsigned|signed|long|short)\s+)*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*(?:\s*<[^;()]*>)?)\s+([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?$/);
+      if (matched && !/[,()]/.test(lhs) && !variables[matched[1]] && !(defines||[]).some(d=>d.role==='parameter' && d.name===matched[1])) {
+        b.addVar(matched[1]);
+      }
+    }
     let globalDecl=Object.entries(variables).filter(([n,v])=>v.role==='variable' && !bleCaptured.has(n)).map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
     const bleDecl = bleCallbacks.map(cb => ble.build(cb, variables) + ' ' + cb.objectName + ';').join('\n\n');
     const headerInc=ownHpp && !includesFromSource.includes(headerName)?'#include "'+headerName+'"\n':'';
@@ -409,8 +431,10 @@
     ].filter(Boolean).join('\n');
     let loop=window.ino2ubiStringParams.transform([bleSnapshots, options.loopCode||''].filter(Boolean).join('\n'),stringParams,[],numericParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
-    b.codePart(inst,'setup','stop','Инициализация',setup);
-    b.codePart(inst,'loop','stop','Основной цикл',loop);
+    // A block's locals must not collide with locals from another instance
+    // when FLProg concatenates all instances into the shared setup()/loop().
+    b.codePart(inst,'setup','stop','Инициализация','{\n'+setup+'\n}');
+    b.codePart(inst,'loop','stop','Основной цикл','{\n'+loop+'\n}');
     // FLProg uses *logical* SmallInteger IDs to identify library blocks and their
     // nested components. The SIXX object ids/idrefs above are serialization-local
     // and must remain untouched. Template logical IDs must NOT be exported verbatim.

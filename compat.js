@@ -196,12 +196,21 @@
     const safety = checkArrayAndDefineSafety(code, parsed);
     const flow = checkSharedExecutionSafety(code);
     const loops = checkWhileSafety(code);
+    // A literal endless loop in the shared FLProg callback blocks the project.
+    // Do not hide it among informational warnings. Check actual function bodies.
+    for (const fn of ['setup','loop']) {
+      const body = extractFunctionBody(code,fn);
+      const clean = maskNonCode(body);
+      if (/\b(?:while\s*\(\s*(?:true|1)\s*\)|for\s*\(\s*;\s*;\s*\))\s*\{?/.test(clean) &&
+          !/\bbreak\s*;/.test(clean))
+        loops.errors.push(fn+'(): обнаружен бесконечный цикл while(true), while(1) или for(;;) без break — блокирует остальные блоки FLProg.');
+    }
     const ble = root.ino2ubiBleSupport;
     const bleIssues = ble ? ble.verifySource(code, parsed) : [];
     const numberErrors = root.ino2ubiNumberLiterals.validateParameters(parsed,board || 'esp32');
     const conversionIssues = root.ino2ubiConversionSafety ? root.ino2ubiConversionSafety.inspect(code, parsed) : [];
     const runtime = root.ino2ubiRuntimeSafety ? root.ino2ubiRuntimeSafety.inspect(code, parsed, {board}) : {errors:[],warnings:[]};
-    const errors = [...safety.errors, ...flow.errors, ...loops.errors, ...numberErrors,
+    const errors = [...(parsed.parse_errors || []), ...safety.errors, ...flow.errors, ...loops.errors, ...numberErrors,
       ...(parsed.ble_issues || []).map(i => i.message),
       ...bleIssues.map(i => i.message), ...conversionIssues.map(i => i.message), ...runtime.errors];
     if (ble && /\b(?:class|struct)\s+[A-Za-z_]\w*\s*[^;{}]*\{/.test(maskNonCode(code)) && !(parsed.ble_callbacks || []).length && !(parsed.ble_issues || []).length)
@@ -221,9 +230,9 @@
     }
     const warnings = [...safety.warnings, ...flow.warnings, ...loops.warnings, ...runtime.warnings];
     if (!code.trim()) errors.push('Исходный код пуст.');
-    if (!/\bvoid\s+setup\s*\(\s*\)\s*\{/m.test(code))
+    if (!/\bvoid\s+setup\s*\(\s*(?:void\s*)?\)\s*\{/m.test(code))
       errors.push('Не найдена функция void setup() {...}.');
-    if (!/\bvoid\s+loop\s*\(\s*\)\s*\{/m.test(code))
+    if (!/\bvoid\s+loop\s*\(\s*(?:void\s*)?\)\s*\{/m.test(code))
       errors.push('Не найдена функция void loop() {...}.');
     const vars = parsed.variables || {};
     const pins = Object.entries(vars).filter(([, value]) => ['input','output','parameter'].includes(value.role));
