@@ -1,4 +1,5 @@
-/* FIX17: Snapshot parameter expressions to preserve numeric and String usage.
+/* FIX23: Preserve integral parameter types when FLProg strips C++ literal suffixes.
+ * FIX17: Snapshot parameter expressions to preserve numeric and String usage.
  * FIX14: A // par String is emitted by FLProg as a C++ string literal, not an
  * Arduino String object. Keep the source's String semantics in both formats.
  * This is a source-to-source transform for code SECTIONS, not macro expansion.
@@ -17,12 +18,27 @@
   }
   function collectNumeric(variables, defines) {
     const names = [];
-    const types = Object.create(null);
+    const types = new Map();
     const add = (name, info) => {
       if (!info || info.role !== 'parameter' || info.type === 'String' || !/^[A-Za-z_]\w*$/.test(name)) return;
       if (!/^(?:bool|boolean|byte|uint8_t|int|int16_t|uint16_t|long|unsigned long|int32_t|uint32_t|float|double|char)$/.test(info.type)) return;
       if (!names.includes(name)) names.push(name);
-      types[name] = info.type === 'boolean' ? 'bool' : info.type;
+      // A FLProg integer field emits e.g. 50, even if the source was 50UL.
+      // Keep the original parameter's C++ type, including a literal suffix
+      // when the source declaration uses a generic signed integer type.
+      const cppType = String(info.type || '');
+      const raw = String(info.default != null ? info.default : info.value != null ? info.value : '').trim();
+      const match = /^[+-]?(?:0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUlL]+)$/.exec(raw);
+      const suffix = match ? match[1].toLowerCase() : '';
+      let snapshotType = '';
+      if (cppType === 'unsigned long' || cppType === 'uint32_t' || cppType === 'uint16_t' || cppType === 'uint8_t') {
+        snapshotType = cppType;
+      } else if (suffix === 'ull' || suffix === 'llu') snapshotType = 'unsigned long long';
+      else if (suffix === 'll') snapshotType = 'long long';
+      else if (suffix === 'ul' || suffix === 'lu') snapshotType = 'unsigned long';
+      else if (suffix === 'u') snapshotType = 'unsigned int';
+      else if (suffix === 'l') snapshotType = 'long';
+      if (snapshotType) types.set(name, snapshotType);
     };
     for (const [name, info] of Object.entries(variables || {})) add(name, info);
     for (const d of defines || []) if (d) add(d.name, d);
@@ -33,7 +49,7 @@
     const text = String(source || '');
     const strings = new Set(parameterNames || []);
     const numerics = new Set(numericNames || []);
-    const numericTypes = numericNames && numericNames.types || {};
+    const numericTypes = numericNames && numericNames.types instanceof Map ? numericNames.types : new Map();
     const selected = new Set([...strings, ...numerics]);
     for (const name of excludedNames || []) selected.delete(name);
     if (!text.trim() || selected.size === 0) return text;
@@ -74,7 +90,7 @@
     // execution is intentional: updated parameter values are read every loop.
     // The scoped block also prevents collisions when a block is used twice.
     const declarations = [...aliases].map(([name, alias]) =>
-      '  ' + (strings.has(name) ? 'String ' : (numericTypes[name] || 'auto') + ' ') + alias + ' = ' + name + ';'
+      '  ' + (strings.has(name) ? 'String ' : (numericTypes.get(name) ? numericTypes.get(name) + ' ' : 'auto ')) + alias + ' = ' + name + ';'
     ).join('\n');
     return '{\n' + declarations + '\n' + rendered + '\n}';
   }

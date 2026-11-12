@@ -40,7 +40,7 @@
       throw new Error('Образец Code Professional повреждён или недоступен.');
     }
   }
-  function createBuilder(template, board) {
+  function createBuilder(template) {
     const doc = new DOMParser().parseFromString(template, 'application/xml');
     ensureXml(doc);
     let next = Math.max(0, ...Array.from(doc.querySelectorAll('[sixx\\.id]')).map(n => Number(n.getAttribute(idAttr)) || 0)) + 1;
@@ -95,8 +95,6 @@
       return n;
     }
     const userIO = new Map(), userParams = new Map(), userVars = new Set();
-    // Native per-instance UUID tags apply to internal globals, including simple
-    // static/array declarations imported from the Arduino sketch.
     let currentInstance=null;
     function inputOutput(instance, name, info) {
       if (!safeIdentifier(name)) throw new Error('Неверное имя контакта C++: ' + name);
@@ -133,12 +131,12 @@
       const isBoolean=info.type==='bool' || info.type==='boolean';
       const numberType=info.type==='String'?'String':info.type==='float'||info.type==='double'?'Float':'SmallInteger';
       if (numberType==='Float') {
-        value=root.ino2ubiNumberLiterals.normalizeFloat(value,name);
+        value=value.replace(/[fF]$/, '');
+        if (!Number.isFinite(Number(value))) throw new Error('Некорректное значение float параметра '+name+': '+value);
       }
       if (numberType==='SmallInteger' && !isBoolean) {
-        value=root.ino2ubiNumberLiterals.normalizeInteger(value,info.type,board || 'esp32',name);
+        value = normalizeCppIntegerDefault(value, name);
       }
-      if (isBoolean) value=root.ino2ubiNumberLiterals.normalizeBoolean(value,name);
       if (!isBoolean) {
         // As in working FLProg Professional UBI libraries: editable value input.
         const species=ard(p,'parametrSpecies','UserCodeMultiBlockInputFieldParametrSpecies');
@@ -248,14 +246,9 @@
       const source=String(text || '');
       if (!symbols.length) {items.appendChild(plain(source));return;}
       const regex=new RegExp('\\b('+symbols.sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
-      const masked=(typeof maskNonCode==='function'?maskNonCode(source):source)
-        .replace(/^[ \t]*#[^\n]*/gm, line => line.replace(/[^\n]/g,' '));
+      const masked=typeof maskNonCode==='function'?maskNonCode(source):source;
       let cursor=0, match;
       while ((match=regex.exec(masked))!==null) {
-        // Do not rewrite object members, methods, or qualified names.
-        // A UUID is only for the block's own identifiers, never library APIs.
-        const prefix=masked.slice(0,match.index);
-        if (/(?:\.|->|::)\s*$/.test(prefix)) continue;
         // `maskComments` keeps literal strings but does not blank them: do not touch quoted strings.
         const before=source.slice(cursor,match.index);
         items.appendChild(plain(before));
@@ -320,7 +313,7 @@
   }
   // Deliberately exported as a factory to make validation explicit.
   function build(options) {
-    const b=createBuilder(options.template, options.targetBoard || 'esp32');
+    const b=createBuilder(options.template);
     const main=required(b.doc.documentElement,'mainBlock');
     const instances=required(required(main,'blockInstancesLibrary'),'items');
     const inst=Array.from(instances.children).find(el=>el.getAttribute('sixx.type')==='UserCodeMultiBlockBlockInstance');
@@ -336,17 +329,12 @@
     textOf(inst,'label',name.slice(0,32));
     b.updateDescription(inst,description);
     const variables=Object.assign({},state.variables||{});
-    const bleCallbacks = state.ble_callbacks || [];
-    const ble = window.ino2ubiBleSupport;
-    const bleCaptured = new Set(bleCallbacks.flatMap(c => c.captured));
-    if (bleCallbacks.length && !ble) throw new Error('Не загружен модуль BLE callback.');
-    const bleSnapshots = bleCallbacks.length ? ble.snapshots(bleCallbacks) : '';
     if (options.enableInput) {
       if (variables.En && variables.En.role!=='input') throw new Error('En уже используется как переменная или параметр.');
       if (!variables.En) variables.En={role:'input',type:'boolean',alias:'En'};
     }
     for (const [n,v] of Object.entries(variables)) {
-      if (v.role==='variable' && !bleCaptured.has(n)) b.addVar(n);
+      if (v.role==='variable') b.addVar(n);
       if (['input','output'].includes(v.role)) b.inputOutput(inst,n,v);
       if (v.role==='parameter') b.parameter(inst,n,v);
     }
@@ -354,20 +342,6 @@
     for (const p of defines) if (p.role==='parameter' && !variables[p.name]) b.parameter(inst,p.name,p);
     // Keep ordinary helper functions inside UBI: a separate header is NOT required.
     const helpers=helperDefinitions(state);
-    // FLProg merges declare sections of placed Code Professional instances.
-    // Each user helper therefore needs the same native per-instance UUID tag
-    // as an internal variable, both at definition and at every direct call.
-    // Library methods and C++ qualified members are excluded by partsFromCode.
-    const helperNames = new Set();
-    for (const [key, helper] of helpers) {
-      const helperName = helper.name || key;
-      if (!safeIdentifier(helperName)) throw new Error('Code Professional: неверное имя вспомогательной функции: ' + helperName);
-      if (helperNames.has(helperName) || variables[helperName] || defines.some(d => d.name === helperName)) {
-        throw new Error('Code Professional: имя функции конфликтует с переменной или параметром: ' + helperName);
-      }
-      helperNames.add(helperName);
-      b.addVar(helperName);
-    }
     const includesFromSource=externalIncludes(state).map(s=>s.match(/"([^"]+)"/)[1]);
     const providedName=String(options.additionalHeaderFilename||'').trim();
     const headerName=providedName && /^(?!\.)[\w.-]+\.hpp?$/i.test(providedName) ? providedName : sanitizeName(name)+'.hpp';
@@ -410,23 +384,7 @@
       return 'PubSubClient '+ctor[1]+';';
     }).join('\n');
     const staticDecl=(state.static_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||'')).join('\n');
-    // FLProg resolves UserCodeMultiBlockUseInCodeUUIDTag separately for every
-    // placed instance. Add it to internal declarations AND their references.
-    // Do not tag external objects, API names, #define values or IO parameters.
-    const instanceScopedDeclarations=[...(state.static_declarations||[]),...(state.extra_declarations||[])];
-    for (const entry of instanceScopedDeclarations) {
-      const statement=String(typeof entry==='string'?entry:(entry.code||entry.text||'')).trim();
-      if (!statement.endsWith(';') || /^#/.test(statement)) continue;
-      const lhs=statement.split(/=(?!=)/,1)[0].replace(/;\s*$/,'').trim();
-      // Simple scalar and array declarators only. Do not rewrite constructor
-      // expressions, function prototypes, multiple declarators or pointers.
-      const matched=lhs.match(/^(?:(?:static|const|volatile|unsigned|signed|long|short)\s+)*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*(?:\s*<[^;()]*>)?)\s+([A-Za-z_]\w*)\s*(?:\[[^\]]*\])?$/);
-      if (matched && !/[,()]/.test(lhs) && !variables[matched[1]] && !(defines||[]).some(d=>d.role==='parameter' && d.name===matched[1])) {
-        b.addVar(matched[1]);
-      }
-    }
-    let globalDecl=Object.entries(variables).filter(([n,v])=>v.role==='variable' && !bleCaptured.has(n)).map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
-    const bleDecl = bleCallbacks.map(cb => ble.build(cb, variables) + ' ' + cb.objectName + ';').join('\n\n');
+    let globalDecl=Object.entries(variables).filter(([,v])=>v.role==='variable').map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
     const headerInc=ownHpp && !includesFromSource.includes(headerName)?'#include "'+headerName+'"\n':'';
     // FIX20 (diagnostic): emit helper functions in the SAME declare code-part.
     // FLProg 9.8.0 crashes at Arduino.DeclaringElement>>declaringTypeString
@@ -439,16 +397,14 @@
       return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
     }).join('\n\n');
     b.codePart(inst,'declare','stop','Библиотеки, объявления и функции',
-      [includes,headerInc,defineLines,staticDecl,globalDecl,bleDecl,declarations,helperText].filter(Boolean).join('\n\n'));
+      [includes,headerInc,defineLines,declarations,staticDecl,globalDecl,helperText].filter(Boolean).join('\n\n'));
     const setup=[...pubsubClientBindings,
-      window.ino2ubiStringParams.transform([bleSnapshots, options.setupCode||''].filter(Boolean).join('\n'),stringParams,[],numericParams)
+      window.ino2ubiStringParams.transform(options.setupCode||'',stringParams,[],numericParams)
     ].filter(Boolean).join('\n');
-    let loop=window.ino2ubiStringParams.transform([bleSnapshots, options.loopCode||''].filter(Boolean).join('\n'),stringParams,[],numericParams);
+    let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams,[],numericParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
-    // A block's locals must not collide with locals from another instance
-    // when FLProg concatenates all instances into the shared setup()/loop().
-    b.codePart(inst,'setup','stop','Инициализация','{\n'+setup+'\n}');
-    b.codePart(inst,'loop','stop','Основной цикл','{\n'+loop+'\n}');
+    b.codePart(inst,'setup','stop','Инициализация',setup);
+    b.codePart(inst,'loop','stop','Основной цикл',loop);
     // FLProg uses *logical* SmallInteger IDs to identify library blocks and their
     // nested components. The SIXX object ids/idrefs above are serialization-local
     // and must remain untouched. Template logical IDs must NOT be exported verbatim.

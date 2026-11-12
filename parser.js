@@ -3,7 +3,7 @@
  */
 const PRIMITIVE_TYPES_LIST = [...PRIMITIVE_TYPES].sort((a, b) => b.length - a.length);
 const PRIMITIVE_TYPE_REGEX = new RegExp(
-  '^(' + PRIMITIVE_TYPES_LIST.map(t => t.replace(/\s+/g, '\\s+')).join('|') + ')\\b\\s+(.+)$'
+  '^(' + PRIMITIVE_TYPES_LIST.map(t => t.replace(/\s+/g, '\\s+')).join('|') + ')\\b\\s+([\\s\\S]+)$'
 );
 
 function maskComments(text) {
@@ -44,7 +44,7 @@ function maskNonCode(text) {
 
 function extractFunctionBody(code, funcName) {
   const escaped = funcName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp('void\\s+' + escaped + '\\s*\\(\\s*(?:void\\s*)?\\)\\s*\\{');
+  const pattern = new RegExp('void\\s+' + escaped + '\\s*\\(\\s*\\)\\s*\\{');
   const masked = maskNonCode(code);
   const match = masked.match(pattern);
   if (!match) return '';
@@ -360,7 +360,10 @@ function parseGlobalSection(globalSection, functions) {
     const token = role === 'parameter' ? '(?:par|parameter)' : role === 'input' ? '(?:in|input)' : role === 'output' ? '(?:out|output)' : null;
     if (!token) return '';
     const match = line.match(new RegExp('\\/\\/\\s*' + token + '\\b\\s*(?::|[-–—])\\s*(.+)$', 'i'));
-    return match ? match[1].trim() : '';
+    // Explanatory comments are not necessarily valid C++ pin identifiers.
+    // Keep the original source variable name in that case.
+    const candidate = match ? match[1].trim() : '';
+    return /^[A-Za-z_][A-Za-z_0-9]*$/.test(candidate) ? candidate : '';
   }
 
   const defines = [];
@@ -388,7 +391,6 @@ function parseGlobalSection(globalSection, functions) {
   const variables = {};
   const extraDeclarations = [];
   const staticDeclarations = [];
-  const parseErrors = [];
 
   function normalizeType(typeName) {
     return typeName.trim().replace(/\s+/g, ' ');
@@ -432,14 +434,6 @@ function parseGlobalSection(globalSection, functions) {
     const stmtNoQual = qualifiers ? stmt.slice(qualifiers[0].length) : stmt;
     const isStatic = /^\s*static\b/.test(stmt);
 
-    // Unsupported C++ declarations must fail explicitly rather than be silently
-    // dropped or converted into the wrong FLProg scalar type.
-    const unsupportedType = /^(?:unsigned\s+(?:int|char|short|long\s+long)|signed\s+\w+|short\b|long\s+long\b|(?:u?int64_t|int8_t|size_t)\b)/.test(stmtNoQual);
-    const pointerOrReference = /^(?:[\w:<> ,]+?)\s*[*&]\s*[A-Za-z_]\w*/.test(stmtNoQual);
-    if (unsupportedType || pointerOrReference || /\b(?:const|volatile)\b/.test(qualifierText)) {
-      parseErrors.push('Неподдерживаемое объявление «' + stmt + '»: тип, указатель или квалификатор нельзя безопасно преобразовать. Используйте подтверждённый тип FLProg либо отдельный проверенный механизм объявлений.');
-      continue;
-    }
     const primitiveMatch = stmtNoQual.match(PRIMITIVE_TYPE_REGEX);
     if (primitiveMatch) {
       const varType = normalizeType(primitiveMatch[1]);
@@ -469,18 +463,10 @@ function parseGlobalSection(globalSection, functions) {
       });
       continue;
     }
-    // Keep complex global declarations only when their original C++ text is intact.
-    // Never silently discard a statement or silently ignore an FLProg pin role.
-    if (role !== 'variable') {
-      parseErrors.push('Невозможно создать // ' + role + ' для объявления «' + stmt + '»: тип не поддерживается контактами FLProg.');
-    } else if (/^[A-Za-z_][A-Za-z0-9_:<> ,]*\s+.+$/s.test(stmt)) {
-      extraDeclarations.push(stmt + ';');
-    } else {
-      parseErrors.push('Глобальное объявление не распознано и не будет безопасно экспортировано: «' + stmt + '».');
-    }
+    if (/^[A-Za-z_][A-Za-z0-9_:<>]*\s+.+$/s.test(stmt)) extraDeclarations.push(stmt + ';');
   }
 
-  return [variables, globalIncludes, defines, extraDeclarations, staticDeclarations, parseErrors];
+  return [variables, globalIncludes, defines, extraDeclarations, staticDeclarations];
 }
 
 function parseArduinoCode(code) {
@@ -498,9 +484,9 @@ function parseArduinoCode(code) {
         declarationsOnly.slice(end);
     }
   }
-  const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations, parseErrors] =
+  const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations] =
     parseGlobalSection(declarationsOnly, functions);
-  const parsed = {
+  return {
     leading_comment: leadingComment,
     variables,
     functions,
@@ -508,22 +494,8 @@ function parseArduinoCode(code) {
     global_includes: globalIncludes,
     defines,
     extra_declarations: extraDeclarations,
-    static_declarations: staticDeclarations,
-    parse_errors: parseErrors
+    static_declarations: staticDeclarations
   };
-  if (typeof window !== 'undefined' && window.ino2ubiBleSupport) {
-    const ble = window.ino2ubiBleSupport.inspect(code, parsed);
-    parsed.ble_callbacks = ble.callbacks;
-    parsed.ble_issues = ble.issues;
-    // The class and its object are emitted as one named SIXX declaration.
-    // Do not emit the object a second time from extra_declarations.
-    const objects = new Set(ble.callbacks.map(c => c.objectName));
-    parsed.extra_declarations = parsed.extra_declarations.filter(stmt => {
-      if (ble.callbacks.some(c => stmt.trimStart().startsWith('class ' + c.className + ' '))) return false;
-      return ![...objects].some(name => new RegExp('\\b' + name + '\\b\\s*;\\s*$').test(stmt));
-    });
-  }
-  return parsed;
 }
 
 // Для GitHub Pages / standalone

@@ -145,11 +145,3 @@ body {
 .help-content .full-guide-body h2 { font-size: 1rem; margin: 1.2rem 0 0.5rem; }
 .help-content .full-guide-body li { font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.3rem; }
 .help-content .full-guide-body pre { white-space: pre; max-width: 100%; }
-
-/* Keep the board label and its selector together on the same line. */
-.board-choice { display: inline-flex; flex-direction: row; align-items: center; gap: .45rem; white-space: nowrap; max-width: 100%; }
-.board-choice label { flex: 0 0 auto; }
-.board-choice .mode-select { width: auto; max-width: min(65vw, 260px); min-width: 0; }
-
-/* Place target-board selector on its own row below the toolbar. */
-.board-row { flex: 0 0 100%; width: 100%; display: flex; align-items: center; }

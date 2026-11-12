@@ -20,13 +20,9 @@
         <div>
           <h1>ino2ubi</h1>
           <p class="tagline">Конвертер Arduino (.ino) в пользовательские блоки FLProg (.ubi)</p>
-          <p class="version"><strong>Цель: ESP32 Core 2.0.17 / Arduino Uno, Nano, Mega 2560 · FLProg · Code Basic / Professional</strong></p>
+          <p class="version"><strong>Цель: ESP32 · Arduino Core 2.0.17 · FLProg 9.8.0 · Code Basic / Professional</strong></p>
           <p class="version">Версия <span id="versionSpan">—</span> (работает в браузере, без сервера)</p>
-          <p class="version">BLE (ESP32 Core 2.0.17): добавлена обработка одного BLE callback-класса, его переменных и MAC/RSSI-параметров. Проверка в установленном FLProg обязательна.</p>
-          <p class="version">Перед скачиванием .ubi выполняется сверка сохранённых секций с исходным .ino; расхождения блокируют экспорт. Code Professional проверяется частично.</p>
-          <p class="version">Проверка скрытых рисков: таймеры, блокировки, callback и аппаратные ресурсы. Предупреждения скрыты; ошибки отображаются.</p>
-          <p class="version">Целочисленные параметры: поддерживаются литералы 60000UL, 123U, 42L, 42ULL с проверкой диапазона.
-          </p><p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
+          <p class="version">Последнее обновление страницы: <span id="lastUpdatedSpan">—</span></p>
         </div>
         <button type="button" id="btnHelp" class="btn btn-secondary" title="Справка по работе">Справка</button>
       </div>
@@ -44,9 +40,6 @@
             <button type="button" id="btnParse" class="btn btn-primary">Парсить код</button>
             <button type="button" id="btnRemoteXY" class="btn btn-remotexy" title="Разобрать Arduino-скетч RemoteXY и заполнить вкладки без скачивания .ubi">Парсить RemoteXY</button>
             <button type="button" id="btnCheckEsp32" class="btn btn-secondary">Проверить ESP32</button>
-          </div>
-          <div class="board-row">
-            <div class="board-choice"><label for="targetBoard">Плата:</label><select id="targetBoard" class="mode-select" aria-label="Целевая плата"><option value="esp32">ESP32 Core 2.0.17</option><option value="uno">Arduino Uno (ATmega328P)</option><option value="nano">Arduino Nano (ATmega328P)</option><option value="mega">Arduino Mega 2560</option></select></div>
           </div>
         </div>
         <textarea id="codeInput" class="code-input" placeholder="Вставьте Arduino-скетч (setup, loop, переменные, функции)…"></textarea>
@@ -113,15 +106,11 @@
             <label for="exportMode">Формат экспорта FLProg 9.8.0</label>
             <select id="exportMode" class="mode-select">
               <option value="basic">Code Basic — стандартный, проверенный</option>
-              <option value="professional">Code Professional — проверен на MQTT (FIX20)</option>
+              <option value="professional">Code Professional</option>
             </select>
           </div>
           <div id="professionalSettings" class="professional-settings" hidden>
             <p class="hint">Один исходный скетч для обоих форматов. Код, помещающийся в UBI, остаётся внутри блока. Внешние заголовки проверяются как зависимости; отсутствующие библиотеки автоматически не выдумываются.</p>
-          </div>
-          <div class="field checkbox-field" id="basicInstanceSetting">
-            <input type="checkbox" id="singleInstance" value="1">
-            <label for="singleInstance">Использовать блок только один раз (Code Basic)</label>
           </div>
           <div class="field checkbox-field">
             <input type="checkbox" id="enableInput" value="1">
@@ -130,9 +119,8 @@
         </div>
 
         <button type="button" id="btnGenerate" class="btn btn-accent btn-block">Сгенерировать .ubi и скачать</button>
-        <p id="formatHelp" class="hint">Code Basic: сохраняется прежний формат .ubi; показываются только ошибки.</p>
+        <p id="formatHelp" class="hint">Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.</p>
         <p id="status" class="status"></p>
-        <div id="roundtripReport" class="esp32-diagnostics" role="region" aria-label="Сверка исходника с UBI" aria-live="polite" hidden></div>
         <div id="esp32Diagnostics" class="esp32-diagnostics" role="region" aria-label="Результаты проверки кода" aria-live="polite" hidden></div>
       </section>
     </main>
@@ -458,23 +446,16 @@ uint8_t bufferSize = 32;             // variable</pre>
     </div>
   </div>
 
-  <script src="constants.js?v=20261110-basicunsigned1"></script>
-  <script src="parser.js?v=20261110-prof-helper-uuid1"></script>
-  <script src="string-params.js?v=20261110-prof-helper-uuid1"></script>
-  <script src="number-literals.js?v=20261110-prof-helper-uuid1"></script>
-  <script src="ble-support.js?v=20261110-prof-helper-uuid1"></script>
-  <script src="basic-instance.js?v=20261109-basicmulti1"></script>
-  <script src="generator.js?v=20261110-basicunsigned1"></script>
-  <script src="professional.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="constants.js"></script>
+  <script src="parser.js"></script>
+  <script src="string-params.js"></script>
+  <script src="generator.js"></script>
+  <script src="professional.js"></script>
   <script src="professional-template-data.js"></script>
-  <script src="conversion-safety.js?v=20261110-prof-helper-uuid1"></script>
-  <script src="runtime-safety.js?v=20261110-prof-helper-uuid1"></script>
-  <script src="compat.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="compat.js"></script>
   <script src="esp32.js"></script>
-  <script src="avr.js"></script>
-  <script src="diagnostics.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="diagnostics.js"></script>
   <script src="remotexy.js"></script>
-  <script src="roundtrip.js?v=20261110-basicunsigned1"></script>
-  <script src="app.js?v=20261110-prof-helper-uuid1"></script>
+  <script src="app.js"></script>
 </body>
 </html>

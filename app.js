@@ -35,51 +35,8 @@
   const btnSaveProject = document.getElementById('btnSaveProject');
   const compat = window.ino2ubiCompat;
   const esp32 = window.ino2ubiEsp32;
-  const avr = window.ino2ubiAVR;
-  const targetBoard = document.getElementById('targetBoard');
-  function targetLabel() { return targetBoard.value === 'esp32' ? 'ESP32 Core 2.0.17' : avr.boards[targetBoard.value].label; }
   const btnCheckEsp32 = document.getElementById('btnCheckEsp32');
   const diagnosticsEl = document.getElementById('esp32Diagnostics');
-  const roundtripEl = document.getElementById('roundtripReport');
-  function showRoundtrip(report) {
-    if (!roundtripEl) return;
-    roundtripEl.replaceChildren();
-    // Successful roundtrip verification remains active but does not clutter the UI.
-    roundtripEl.hidden = !report.errors.length;
-    if (!report.errors.length) return;
-    const heading = document.createElement('h3');
-    heading.textContent = 'Сверка .ino → .ubi: ' + (report.errors.length ? 'НАЙДЕНЫ РАСХОЖДЕНИЯ' : 'проверенные секции сохранены');
-    roundtripEl.appendChild(heading);
-    const summary = document.createElement('p');
-    summary.textContent = 'Режим: ' + report.mode + '. Успешных сверок: ' + report.verified.length + ', расхождений: ' + report.errors.length + '.';
-    roundtripEl.appendChild(summary);
-    for (const [items,title] of [[report.errors,'Ошибки']]) {
-      if (!items.length) continue;
-      const sub = document.createElement('p');
-      sub.textContent = title + ':';
-      roundtripEl.appendChild(sub);
-      const ul = document.createElement('ul');
-      items.forEach(message => { const li = document.createElement('li'); li.textContent = message; ul.appendChild(li); });
-      roundtripEl.appendChild(ul);
-    }
-    const details = document.createElement('details');
-    const caption = document.createElement('summary');
-    caption.textContent = 'Показать сохранённые элементы (' + report.verified.length + ')';
-    details.appendChild(caption);
-    const ul = document.createElement('ul');
-    report.verified.forEach(message => {const li = document.createElement('li');li.textContent=message;ul.appendChild(li);});
-    details.appendChild(ul);roundtripEl.appendChild(details);
-  }
-  function verifyGenerated(xml,code,mode) {
-    if (!window.ino2ubiRoundtrip) throw new Error('Модуль сверки .ino и .ubi не загружен.');
-    const report = mode === 'professional' ?
-      window.ino2ubiRoundtrip.compareProfessional(xml,code,state,enableInput.checked) :
-      window.ino2ubiRoundtrip.compareBasic(xml,code,state,enableInput.checked,targetBoard.value,singleInstance.checked);
-    showRoundtrip(report);
-    if (report.errors.length) throw new Error('Сверка .ino → .ubi обнаружила ' + report.errors.length + ' расхождений: ' + report.errors.slice(0,3).join(' '));
-    return report;
-  }
-
   const btnClear = document.getElementById('btnClear');
   const btnParse = document.getElementById('btnParse');
   const btnGenerate = document.getElementById('btnGenerate');
@@ -97,8 +54,6 @@
     return clean.slice(0, 24).replace(/\s+\S*$/, '').trim() || clean.slice(0, 24);
   }
   const enableInput = document.getElementById('enableInput');
-  const singleInstance = document.getElementById('singleInstance');
-  const basicInstanceSetting = document.getElementById('basicInstanceSetting');
   const exportMode = document.getElementById('exportMode');
   const professionalSettings = document.getElementById('professionalSettings');
   // Professional uses the same source editor as Basic; no separate header input.
@@ -107,11 +62,10 @@
   function refreshExportMode() {
     const professional = exportMode.value === 'professional';
     professionalSettings.hidden = !professional;
-    if (basicInstanceSetting) basicInstanceSetting.hidden = professional;
     btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
     formatHelp.textContent = professional ?
       'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 9.8.0.' :
-      'Code Basic: несколько экземпляров изолируются в поддерживаемых случаях; для сложных блоков выберите «только один раз». Показываются только ошибки.';
+      'Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.';
   }
   exportMode.addEventListener('change', refreshExportMode);
   refreshExportMode();
@@ -167,25 +121,29 @@
 
   // All checks are run on «Парсить код», manual check and before export.
   function runChecks(code, parsed) {
-    const converter = compat.validateConverterInput(code, parsed, enableInput.checked, targetBoard.value);
-    const board = targetBoard.value === 'esp32' ? esp32.checkEsp32Core2017(code, parsed) : avr.check(code, targetBoard.value);
+    const converter = compat.validateConverterInput(code, parsed, enableInput.checked);
+    const board = esp32.checkEsp32Core2017(code, parsed);
     return {
       errors: [...new Set([...converter.errors, ...board.errors])],
-      warnings: [...new Set([...converter.warnings, ...board.warnings])]
+      warnings: [] // Режим отображения только ошибок; проверки ошибок сохранены.
     };
   }
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    // Keep validation intact but display only actual errors, never warnings.
-    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: [] })
-      .filter(issue => issue.severity === 'error');
-    diagnosticsEl.hidden = issues.length === 0;
-    if (!issues.length) return;
+    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: [] });
+    diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
-    heading.textContent = 'Проверка ino2ubi / ' + targetLabel() + ': ' +
-      issues.length + ' ошибок';
+    heading.textContent = 'Проверка ino2ubi / ESP32 Core 2.0.17: ' +
+      result.errors.length + ' ошибок';
     diagnosticsEl.appendChild(heading);
+    if (!issues.length) {
+      const ok = document.createElement('p');
+      ok.className = 'diagnostic-ok';
+      ok.textContent = 'Известных несовместимостей не обнаружено. Это не заменяет компиляцию в FLProg.';
+      diagnosticsEl.appendChild(ok);
+      return;
+    }
     const list = document.createElement('div');
     list.className = 'diagnostic-list';
     for (const issue of issues) {
@@ -239,16 +197,11 @@
     return { errors: [], warnings: [] };
   }
 
-  targetBoard.addEventListener('change', function () {
-    btnCheckEsp32.textContent = targetBoard.value === 'esp32' ? 'Проверить ESP32' : 'Проверить Arduino';
-    diagnosticsEl.hidden = true;
-  });
-
   btnCheckEsp32.addEventListener('click', function () {
     const code = codeInput.value;
     if (!code.trim()) {
       showEsp32Diagnostics({ errors: ['Исходный код пуст.'], warnings: [] }, code);
-      setStatus('Вставьте код Arduino.', true);
+      setStatus('Вставьте код ESP32.', true);
       return;
     }
     try {
@@ -261,8 +214,8 @@
         result = runChecks(code, parsed);
       }
       showEsp32Diagnostics(result, code);
-      setStatus(result.errors.length ? 'Найдены ошибки Arduino/ino2ubi: ' + result.errors.length :
-        'Проверка Arduino и ino2ubi: ошибок нет',
+      setStatus(result.errors.length ? 'Найдены ошибки ESP32/ino2ubi: ' + result.errors.length :
+        'Проверка ESP32 и ino2ubi: ошибок нет',
         result.errors.length > 0);
     } catch (error) {
       showEsp32Diagnostics({ errors: ['Ошибка разбора: ' + error.message], warnings: [] }, code);
@@ -295,7 +248,6 @@
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;
-        singleInstance.checked = !!data.settings.singleInstance;
         exportMode.value = data.settings.exportMode === 'professional' ? 'professional' : 'basic';
 
 
@@ -383,7 +335,6 @@
     }
     const project = compat.makeProject(codeInput.value, state, {
       blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked,
-      singleInstance:singleInstance.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
       exportMode: exportMode.value
     });
@@ -487,7 +438,6 @@
         if (!blockName.value.trim() || blockName.value === 'Custom Block') blockName.value = 'RemoteXY_Greenhouse';
         blockDesc.value = built.description;
         enableInput.checked = false;
-        singleInstance.checked = true;
         renderVariables();
         renderFunctions();
         showEsp32Diagnostics(remoteXYChecks(built.data), code);
@@ -515,10 +465,7 @@
         global_includes: result.global_includes || [],
         defines: result.defines || [],
         extra_declarations: result.extra_declarations || [],
-        static_declarations: result.static_declarations || [],
-        ble_callbacks: result.ble_callbacks || [],
-        ble_issues: result.ble_issues || [],
-        parse_errors: result.parse_errors || []
+        static_declarations: result.static_declarations || []
       };
       parsedSource = codeInput.value;
       if (result.leading_comment) {
@@ -652,7 +599,6 @@
   });
 
   btnGenerate.addEventListener('click', function () {
-    if (roundtripEl) {roundtripEl.hidden=true;roundtripEl.replaceChildren();}
     var code = codeInput.value;
     if (!code.trim()) {
       setStatus('Вставьте код Arduino', true);
@@ -676,7 +622,7 @@
         if (!template) throw new Error('Шаблон Code Professional не загружен.');
         const result = window.ino2ubiProfessional.build({
           template, name:blockName.value.trim()||'Custom Block', description:blockDesc.value,
-          state, source:code, enableInput:enableInput.checked, targetBoard:targetBoard.value,
+          state, source:code, enableInput:enableInput.checked,
           setupCode: window.extractFunctionBody(code,'setup'),
           loopCode: window.extractFunctionBody(code,'loop'),
           additionalHeader:'', additionalHeaderFilename:''
@@ -686,15 +632,11 @@
         if (result.hpp) {
           throw new Error('Блоку требуется собственная библиотека .hpp; прямой экспорт одного .ubi невозможен без неё.');
         }
-        verifyGenerated(result.xml,code,'professional');
         const blob = new Blob([window.ino2ubiProfessional.utf16le(result.xml.replace(/\r?\n/g,'\r\n'))], {type:'application/octet-stream'});
         downloadBlob(blob, result.filename + '.ubi');
         setStatus('Создан Code Professional .ubi.'+
           (result.dependencies.length?' Используемые внешние библиотеки (проверьте их наличие в FLProg): '+result.dependencies.join(', ')+'.':'')+
-          ' Проверьте импорт и компиляцию в FLProg 9.8.0.'+
-          (window.ino2ubiConversionSafety.requiresSingleInstance(code,state) ?
-            ' ВАЖНО: обнаружен общий ресурс; без проверенного механизма разделения используйте один экземпляр блока.' :
-            ' UUID для нескольких экземпляров требует проверки в FLProg.'));
+          ' Проверьте импорт и компиляцию в FLProg 9.8.0.');
       }).catch(function (e) {
         setStatus('Ошибка Code Professional: '+e.message,true);
         showEsp32Diagnostics({errors: [e.message],warnings: []},code);
@@ -713,7 +655,6 @@
         if (!integrity.valid) throw new Error('Повреждены XML-ссылки: ' + JSON.stringify(integrity));
         const doc = new DOMParser().parseFromString(built.xml, 'application/xml');
         if (doc.querySelector('parsererror')) throw new Error('Недопустимый XML RemoteXY.');
-        if (roundtripEl) { roundtripEl.hidden=false; roundtripEl.textContent='RemoteXY: структурная сверка исходника с .ubi пока не реализована; проверены XML и SIXX-ссылки.'; }
         const blob = stringToUtf16LeBlob(built.xml.replace(/\r?\n/g, '\r\n'));
         downloadBlob(blob, (built.name || 'RemoteXY').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi');
         setStatus('Экспериментальный RemoteXY .ubi создан; проверьте импорт и компиляцию в FLProg 9.8.0.');
@@ -757,21 +698,17 @@
         state.static_declarations,
         setupCode,
         loopCode,
-        enableInput.checked,
-        { singleInstance: (singleInstance.checked || window.ino2ubiConversionSafety.requiresSingleInstance(code, state)), bleCallbacks: state.ble_callbacks || [], targetBoard: targetBoard.value }
+        enableInput.checked
       );
       const integrity = compat.inspectGeneratedXml(xml);
       if (!integrity.valid) throw new Error('Повреждённые ссылки SIXX: ' + JSON.stringify(integrity));
       // DOMParser checks nesting and entity escaping in addition to SIXX references.
       const doc = new DOMParser().parseFromString(xml, 'application/xml');
       if (doc.querySelector('parsererror')) throw new Error('Файл .ubi содержит недопустимый XML.');
-      verifyGenerated(xml,code,'basic');
       const blob = stringToUtf16LeBlob(xml.replace(/\r?\n/g, '\r\n'));
       const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
       downloadBlob(blob, filename);
       setStatus('Сохранён .ubi (' + integrity.objects + ' объектов SIXX).' +
-        ((singleInstance.checked || window.ino2ubiConversionSafety.requiresSingleInstance(code, state)) ?
-          ' Блок владеет общим аппаратным ресурсом: используйте только один экземпляр.' : '') +
         ' Проверьте импорт и компиляцию в установленном FLProg 9.8.0.');
     } catch (e) {
       showEsp32Diagnostics({ errors: ['Ошибка генерации .ubi: ' + e.message], warnings: [] }, code);
