@@ -99,7 +99,9 @@
     global_includes: [],
     defines: [],
     extra_declarations: [],
-    static_declarations: []
+    static_declarations: [],
+    global_section_raw: '',
+    declaration_order: []
   };
 
   function setStatus(msg, isError) {
@@ -237,6 +239,10 @@
         remoteXYMode = false;
         remoteXYPreview = null;
         state = data.parsed;
+        // Old saved projects may not contain this field; always recompute from source.
+        var reparsedOrder = window.parseArduinoCode(data.code);
+        state.global_section_raw = reparsedOrder.global_section_raw || '';
+        state.declaration_order = reparsedOrder.declaration_order || [];
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;
@@ -430,7 +436,9 @@
         global_includes: result.global_includes || [],
         defines: result.defines || [],
         extra_declarations: result.extra_declarations || [],
-        static_declarations: result.static_declarations || []
+        static_declarations: result.static_declarations || [],
+        global_section_raw: result.global_section_raw || '',
+        declaration_order: result.declaration_order || []
       };
       parsedSource = codeInput.value;
       if (result.leading_comment) {

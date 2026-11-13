@@ -122,13 +122,13 @@
       advice = 'Вместо return используйте условие if/else, чтобы не прервать остальные блоки FLProg.';
     } else if ((m = message.match(/^([A-Za-z_]\w*)\(\):/))) {
       idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\('));
-      advice = 'Используйте API, доступный в Arduino-ESP32 Core 2.0.17; проверьте параметры вызова.';
+      advice = 'Используйте API, доступный в Arduino-ESP32 Core 3.3.11; проверьте параметры вызова.';
     } else if ((m = message.match(/^Функция\s+([A-Za-z_]\w*)/))) {
       idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\('));
       advice = 'Проверьте сигнатуру после экспорта в .ubi и передавайте параметры явно.';
     } else if (/^esp_now_(recv|send)_info_t/.test(message)) {
       idx = findByRegex(clean, /\besp_now_(recv|send)_info_t\b/);
-      advice = 'Используйте сигнатуру обратного вызова для ESP32 Core 2.0.17.';
+      advice = 'Используйте сигнатуру обратного вызова для ESP32 Core 3.3.11.';
     } else if (/^Обнаружен код ESP8266/.test(message)) {
       idx = findByRegex(code, /ESP8266WiFi\.h|ESP8266WebServer/);
       advice = 'Замените ESP8266 API на соответствующий ESP32 API.';
@@ -144,7 +144,7 @@
       advice = 'Используйте сигнатуру void onRecv(const uint8_t* mac, const uint8_t* data, int len).';
     } else if (/^ledcWrite\(\)/.test(message)) {
       idx = findByRegex(clean, /\bledcWrite\s*\(/);
-      advice = 'Для Core 2.0.17 настройте канал через ledcSetup() и ledcAttachPin().';
+      advice = 'Для Core 3.3.11 используйте API ledcAttach() и ledcWrite() с номером GPIO; старые ledcSetup()/ledcAttachPin() удалены.';
     } else if (/^delay\(\)/.test(message)) {
       idx = findByRegex(clean, /\bdelay\s*\(/);
       advice = 'Используйте millis() и проверку прошедшего времени вместо блокирующей задержки.';
@@ -191,12 +191,38 @@
     } else if (/^Условная компиляция/.test(message)) {
       idx = findByRegex(code, /^[ \t]*#\s*(?:if|ifdef|ifndef)\b/m);
       advice = 'Убедитесь, что условные ветки и используемые макросы сохраняются после генерации.';
-    } else if (/^Функциональные макросы/.test(message)) {
-      idx = findByRegex(code, /^[ \t]*#\s*define\s+\w+\s*\(/m);
-      advice = 'По возможности замените функциональный макрос безопасной вспомогательной функцией.';
+    } else if (/^Функциональн(?:ые|ый) макрос/.test(message)) {
+      idx = findByRegex(code, /^[ \t]*#\s*define\s+\w+\(/m);
+      advice = 'Проверьте, что #define NAME(x) остался без пробела между именем и скобкой; многострочные макросы запрещены.';
     } else if (/^Библиотека ESP32_NOW/.test(message)) {
       idx = findByRegex(code, /ESP32_NOW\.h|\bESP_NOW_Peer\b/);
       advice = 'Используйте штатный <esp_now.h> или проверьте установленную версию сторонней библиотеки.';
+    } else if (/^Неподдерживаемый глобальный тип C\+\+/.test(message)) {
+      idx = findByRegex(clean, /\b(?:long\s+long|(?:u?int64_t)|unsigned\s+(?:int|char|short)|signed\s+char|int8_t|size_t)\s+[*&\w]/);
+      advice = 'Используйте поддерживаемый тип или переработайте объявление без изменения разрядности данных.';
+    } else if (/^Глобальный указатель\/ссылка C\+\+/.test(message)) {
+      idx = findByRegex(clean, /\b[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s*[*&]+\s*(?:(?:const|volatile)\s+)?[A-Za-z_]\w*/);
+      advice = 'Глобальные указатели и ссылки пока не изолируются по экземплярам.';
+    } else if (/^Глобальный массив:/.test(message)) {
+      idx = findByRegex(clean, /\b[A-Za-z_]\w*\s*\[[^\]\n]*\]\s*(?:=|;|\{)/);
+      advice = 'Глобальные массивы пока не имеют гарантированного UUID.';
+    } else if (/^Массивы объектов C\+\+/.test(message)) {
+      idx = findByRegex(clean, /\b[A-Za-z_]\w*\s*\[[^\]\n]*\]/);
+    } else if ((m=message.match(/^Помеченное объявление ([A-Za-z_]\w*) не распознано/))) {
+      idx = findByRegex(clean, new RegExp('\\b'+escapeRegex(m[1])+'\\b'));
+      advice = 'Выберите поддерживаемый тип и повторно распарсьте скетч.';
+    } else if (/^Глобальное объявление после начала setup\(\)\/loop\(\)/.test(message)) {
+      // Find first global-looking declaration between the function bodies or after them.
+      const fn = /\bvoid\s+(?:setup|loop)\s*\(\s*(?:void\s*)?\)\s*\{/g;
+      const parts=[]; let fm;
+      while((fm=fn.exec(clean))){let d=1,j=fn.lastIndex;while(j<clean.length&&d){if(clean[j]==='{')d++;else if(clean[j]==='}')d--;j++;}parts.push({start:fm.index,end:j});}
+      if(parts.length===2){parts.sort((a,b)=>a.start-b.start);let segments=[[parts[0].end,parts[1].start],[parts[1].end,clean.length]];
+        for(const [a,b] of segments){const r=/^\s*(?:(?:const|volatile|static)\s+)*[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*(?:=|;|\[)/gm;const found=r.exec(clean.slice(a,b));if(found){idx=a+found.index+(found[0].match(/^\s*/)||[''])[0].length;break;}}
+      }
+      advice = 'Перенесите глобальное объявление перед setup() и повторите разбор.';
+    } else if ((m=message.match(/^Незакрытая фигурная скобка функции (setup|loop)\(\)/))) {
+      idx = findByRegex(clean,new RegExp('\\bvoid\\s+'+m[1]+'\\s*\\(\\s*(?:void\\s*)?\\)\\s*\\{'));
+      advice = 'Закройте тело функции фигурной скобкой и повторите разбор.';
     } else if (/^Исходный код пуст/.test(message)) {
       advice = 'Вставьте Arduino-скетч в редактор и нажмите «Парсить код».';
     } else if (/^Не найдена функция void (setup|loop)/.test(message)) {

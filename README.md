@@ -1,34 +1,30 @@
-# INO2UBI v2.16 RC2 — Code Professional / ESP32 Core 3.3.11
+# INO2UBI v2.16 RC2 — AUDIT FIX (проверяемый кандидат)
 
-Релиз-кандидат на основе FIX39/RC1. Генератор, UID, параметры и логика экспорта не изменены. Диагностика и сохранение проектов закреплены за Core 3.3.11; переключатель версий удалён.
+Основа: RC2 Code Professional / FLProg 9.8.6 / ESP32 Arduino Core 3.3.11.
 
-## Подтверждено пользователем в FLProg 9.8.6 / ESP32 Core 3.3.11
+Включены защитные исправления P0 и части замечаний HIGH/MEDIUM аудита: контроль глобальных указателей, ссылок, 64-битных типов, массивов, static, объявлений типов, объектов без конструктора; обнаружение некоторых потерянных аннотированных объявлений и зависимостей от порядка, поддержка setup(void)/loop(void), защита от некорректной подстановки членов объектов, дополнительная обработка callback, изоляция локальных переменных внутри блоков setup/loop, исправление подсказок Core 3.3.11.
 
-- компиляция двух экземпляров блока с функциями и отдельным состоянием (FIX28);
-- компиляция двух экземпляров с типизированными параметрами (FIX31–FIX33);
-- компиляция одиночного блока аппаратного таймера (FIX36/37), с предупреждением IRAM_ATTR внутри установленной библиотеки;
-- компиляция PWM и Modbus с тестовыми nullptr-зависимостями (FIX38);
-- компиляция двух экземпляров с объектами FlprogHardwarePwmPin и ModbusMasterRTU без конфликта имён (FIX39).
+Неподдерживаемые конструкции блокируются диагностикой вместо молчаливой порчи, что **сужает** область экспортируемого C++ относительно RC2. Полноценная поддержка произвольного C++ не заявлена. Некоторые сложные конструкции парсера могут оставаться непроверенными.
 
-## Сравнение с блоком Экоинса
+Проверено: синтаксис JS, тесты парсера и диагностики; GitHub Pages и полный экспорт в браузере не подтверждены; импорт/компиляция в FLProg 9.8.6 и испытания на ESP32 не выполнялись. Не заменять стабильную RC2 до подтверждения в целевой среде.
 
-Оригинал: 11.filter.Hysteresis.ORIGINAL.ubi из представленного архива. Корень XML обоих файлов — UserCodeMultiBlockBlockLibraryElement. В обоих присутствуют mainBlock, mainParametrs, codeData, declare/setup/loop/functionSection, blockInstancesLibrary, commonParametrsLibrary, commonExtLibsLibrary, conditionsLibrary, editorPositionStore, templates. В обоих найдено по 24 UserCodeMultiBlockCodePartsLibrary. Это структурная совместимость, не тождество поведения: у Экоинса имеются дополнительные объекты редактора и варианты кода.
 
-## Ограничения RC1
+## Callback UUID fix (candidate)
+- Helper function identifiers used as callback arguments or function-pointer values are UUID-tagged, not only direct calls.
+- Namespace and member accesses remain unchanged.
+- Validate with two FLProg instances under ESP32 Core 3.3.11.
 
-- Изоляция проверена для обычных переменных, вспомогательных функций и объектов `Type name(args);` с аргументами. Шаблонные объявления, массивы объектов, ссылки, указатели и иные нетривиальные объявления C++ не получили общего подтверждения.
-- Не гарантируется изоляция общих аппаратных ресурсов: Flprog_HardwareTimer использует общий callback/таймер.
-- Core 2.0.17 не является целевой средой и не тестируется; старые проекты открываются с проверкой под Core 3.3.11.
-- На физическом ESP32 PWM, Modbus и аппаратный таймер не проверялись; `nullptr` в тестах не означает рабочее соединение с периферией.
-- RemoteXY и Basic не входят в экспорт; только Code Professional.
-- Применение собственных библиотек FLProg не означает автоматическую миграцию RT_HW.
+## H2 String constructor UUID fix (candidate)
+A global `String name("value");` is registered as per-instance C++ object, so the declaration and member accesses are UUID-tagged. The original Arduino API, include and object state remain unchanged. A real two-instance FLProg compilation is still required.
 
-## Установка и проверка
 
-Разместить файлы архива в корне статического сайта / GitHub Pages и открыть index.html. Примеры в каталоге examples/ предназначены для регрессионных тестов. Сгенерированный .ubi необходимо импортировать в FLProg и проверить компиляцию для выбранного ядра.
+H3 candidate: original relative order of parsed global variables, statics and constructor declarations is retained in Professional declare code via declaration_order. Existing callback/H2 fixes retained. Reparse old .i2u.json projects with mixed declarations. Nested String constructors with ambiguous parsing are rejected. Browser export / FLProg 9.8.6 compilation must be confirmed by user.
 
-Статус: RC2, не финальный релиз для произвольного Arduino C++.
 
-## Регрессия RC2
+## RC2 AUDIT FINAL CANDIDATE — 14.11.2026
 
-Целевой Core зафиксирован на 3.3.11 без изменения проверенного генератора. Пример проверки сложных объявлений: `examples/RC2_COMPLEX_DECLARATIONS.ino`. Глобальные указатели/ссылки простых объявлений блокируются диагностикой; массивы объектов получают предупреждение. Для шаблонов и более сложных объявлений автоматическая изоляция пока не гарантируется. Не считайте успешный экспорт подтверждением корректной компиляции нескольких экземпляров.
+- Сохранены исправления H1 (передача callback), H2 (UUID объектов String), H3 (порядок глобальных объявлений).
+- C4: однострочные функциональные #define сохраняются как исходная директива; предупреждение уточнено, многострочные директивы блокируются.
+- H5: сохранена защита обращений к членам объектов/namespace от ошибочной UUID-подстановки.
+- Диагностика отличает числовые массивы от массивов объектов и указывает строки для проверенных случаев H4/H6/C2/C5/M5.
+- Статус: кандидат. FLProg-компиляция именно этого ZIP и работа на ESP32 требуют подтверждения.

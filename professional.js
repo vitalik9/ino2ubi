@@ -282,24 +282,22 @@
         // Only rewrite actual function names (definition/call), never a field
         // named identically in an object, a namespace member, or a string.
         const prev=masked.slice(0,match.index).trimEnd();
-        const next=masked.slice(match.index+key.length);
-        const functionUse=userFunctions.has(key) && /^\s*\(/.test(next) &&
-          !/(?:\.|->|::)$/.test(prev);
-        // FIX36: function pointers passed to the FLProg hardware timer must be
-        // renamed too. A bare callback reference lacks the '(' of a call.
-        // Limit this rewrite to the verified timer API, rather than guessing
-        // whether every bare function name is a C++ pointer expression.
-        const timerCallbackUse=userFunctions.has(key) &&
-          /\binitFlprogSystemTimer\s*\(\s*&?$/.test(prev) &&
-          /^\s*\)/.test(next);
-        const variableUse=userVars.has(key) && !/(?:\.|->|::)$/.test(prev);
-        if (functionUse || timerCallbackUse || variableUse) {
+        // A helper identifier can denote either a direct call (helper(x)) or
+        // a function value (runCallback(x, helper), &helper, assignment).
+        // In all these cases it must refer to the CURRENT FLProg instance.
+        // Do not rewrite object members or namespace-qualified names.
+        const memberAccess=/(?:\.|->|::)$/.test(prev);
+        const instanceFunction=userFunctions.has(key) && !memberAccess;
+        const instanceVariable=userVars.has(key) && !memberAccess;
+        if (memberAccess) {
+          items.appendChild(plain(key));
+        } else if (instanceFunction || instanceVariable) {
           items.appendChild(plain(key+'_'));
           items.appendChild(uuidTag(currentInstance));
-        } else if (userFunctions.has(key)) {
-          items.appendChild(plain(key));
-        } else {
+        } else if (userIO.has(key) || userParams.has(key)) {
           items.appendChild(newTag(userIO.get(key)||userParams.get(key),userIO.has(key)));
+        } else {
+          items.appendChild(plain(key));
         }
         cursor=match.index+key.length;
       }
@@ -422,7 +420,12 @@
       if (!match) return null;
       const type=match[1], name=match[2], args=match[3].trim();
       // `void helper(...)` and other function prototypes are not objects.
-      if (RECOGNIZED.has(type) || /^(?:void|auto|size_t|const|unsigned|signed)$/.test(type)) return null;
+      // String is a C++ class with real constructors, although it is also a
+      // supported FLProg scalar type. Excluding it leaves global String objects
+      // unsuffixed and causes redefinition with two Professional instances.
+      // Keep ordinary scalar/primitive types excluded.
+      if ((RECOGNIZED.has(type) && type !== 'String') ||
+          /^(?:void|auto|size_t|const|unsigned|signed)$/.test(type)) return null;
       // Require actual constructor arguments to distinguish from the common
       // zero-argument function declaration (`Type foo();`).
       if (!args) return null;
@@ -449,7 +452,7 @@
     // Never manufacture headers just because a helper function exists.
     const internal=helpers;
     const includes=(state.global_includes||[]).join('\n');
-    const defineLines=(state.defines||[]).filter(d=>d.role!=='parameter').map(d=>'#define '+d.name+' '+(d.value||'')).join('\n');
+    const defineLines=(state.defines||[]).filter(d=>d.role!=='parameter').map(d=>d.raw || ('#define '+d.name+' '+(d.value||''))).join('\n');
     // FIX18: Defensive guard for a FLProg 9.8.0 Professional crash at
     // Arduino.DeclaringElement>>declaringTypeString.  The crash occurred while
     // processing an imported MQTT block with constructor-initialized global
@@ -474,19 +477,59 @@
     // FIX19 avoids silently skipping constructor-like extra declarations.
     // Known PubSubClient(Client&) is rewritten below. Other custom ctor types
     // remain unchanged because a generic fallback can silently alter behavior.
-    const declarations=(state.extra_declarations||[]).map(x=>{
+    const extraLines=(state.extra_declarations||[]).map(x=>{
       const line=typeof x==='string'?x:(x.code||x.text||'');
-      // An original forward declaration for a parsed helper would otherwise
-      // retain its unsuffixed name and refer to another block instance.
       const proto=line.trim().match(/^[\w\s:*&<>]+?\s+([A-Za-z_]\w*)\s*\([^;{}]*\)\s*;$/);
       if (proto && helpers.some(([key,f])=>(f.name||key)===proto[1])) return '';
       const ctor=line.trim().match(/^PubSubClient\s+([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)\s*;$/);
       if (!ctor) return line;
       pubsubClientBindings.push(ctor[1]+'.setClient('+ctor[2]+');');
       return 'PubSubClient '+ctor[1]+';';
-    }).join('\n');
-    const staticDecl=(state.static_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||'')).join('\n');
-    let globalDecl=Object.entries(variables).filter(([,v])=>v.role==='variable').map(([n,v])=>v.type+' '+n+(v.default!=null?' = '+v.default:'')+';').join('\n');
+    });
+    const staticLines=(state.static_declarations||[]).map(x=>typeof x==='string'?x:(x.code||x.text||''));
+    const variableEntries=Object.entries(variables).filter(([,v])=>v.role==='variable');
+    const variableLines=new Map(variableEntries.map(([n,v])=>[n,(v.qualifiers ? v.qualifiers+' ' : '')+v.type+' '+n+(v.default!=null?' = '+v.default:'')+';']));
+    // H3: Keep the original relative order of constructor objects, static declarations
+    // and instance variables. FLProg concatenates all instances into one C++ TU;
+    // changing the order can break constructor arguments and global initialization.
+    // Metadata is derived by the parser from source positions, not from JS object iteration.
+    function orderedGlobalDeclarations() {
+      const order=state.declaration_order;
+      if (!Array.isArray(order) || !order.length) {
+        // Legacy projects without source-order metadata are deliberately rejected
+        // when they mix constructor declarations and variables: guessing order is unsafe.
+        if (extraLines.some(Boolean) && variableLines.size)
+          throw new Error('H3: старый проект не содержит порядок глобальных объявлений. Повторите «Парсить код» перед экспортом.');
+        return [...extraLines,...staticLines,...variableLines.values()].filter(Boolean).join('\n');
+      }
+      const placedVariables=new Set(), placedExtra=new Set(), placedStatic=new Set();
+      const lines=[];
+      for (const entry of [...order].sort((a,b)=>a.position-b.position)) {
+        if (entry.kind==='variable' && variableLines.has(entry.name)) {
+          if (placedVariables.has(entry.name)) throw new Error('H3: повторное глобальное объявление '+entry.name);
+          lines.push(variableLines.get(entry.name)); placedVariables.add(entry.name);
+        } else if (entry.kind==='extra' && extraLines[entry.index] !== undefined) {
+          if (placedExtra.has(entry.index)) throw new Error('H3: повторный элемент extra '+entry.index);
+          lines.push(extraLines[entry.index]); placedExtra.add(entry.index);
+        } else if (entry.kind==='static' && staticLines[entry.index] !== undefined) {
+          if (placedStatic.has(entry.index)) throw new Error('H3: повторный элемент static '+entry.index);
+          lines.push(staticLines[entry.index]); placedStatic.add(entry.index);
+        }
+      }
+      // Any newly-added variable has no source position. Appending it is safe
+      // only when no other initializers depend on the new declaration.
+      for (const [name,line] of variableLines) if (!placedVariables.has(name)) {
+        if (extraLines.some(x=>x && new RegExp('\\b'+name+'\\b').test(x)))
+          throw new Error('H3: объект зависит от добавленной переменной '+name+' без позиции в исходнике. Перепарсите скетч.');
+        lines.push(line);
+      }
+      for (let i=0;i<extraLines.length;i++) if (!placedExtra.has(i))
+        throw new Error('H3: отсутствует позиция исходного объявления extra #'+i+'. Перепарсите скетч.');
+      for (let i=0;i<staticLines.length;i++) if (!placedStatic.has(i))
+        throw new Error('H3: отсутствует позиция исходного объявления static #'+i+'. Перепарсите скетч.');
+      return lines.filter(Boolean).join('\n');
+    }
+    const globalDecl=orderedGlobalDeclarations();
     const headerInc=ownHpp && !includesFromSource.includes(headerName)?'#include "'+headerName+'"\n':'';
     // FIX20 (diagnostic): emit helper functions in the SAME declare code-part.
     // FLProg 9.8.0 crashes at Arduino.DeclaringElement>>declaringTypeString
@@ -499,14 +542,14 @@
       return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
     }).join('\n\n');
     b.codePart(inst,'declare','stop','Библиотеки, объявления и функции',
-      [includes,headerInc,defineLines,declarations,staticDecl,globalDecl,helperText].filter(Boolean).join('\n\n'));
+      [includes,headerInc,defineLines,globalDecl,helperText].filter(Boolean).join('\n\n'));
     const setup=[...pubsubClientBindings,
       window.ino2ubiStringParams.transform(options.setupCode||'',stringParams,[],numericParams)
     ].filter(Boolean).join('\n');
     let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams,[],numericParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
-    b.codePart(inst,'setup','stop','Инициализация',setup);
-    b.codePart(inst,'loop','stop','Основной цикл',loop);
+    b.codePart(inst,'setup','stop','Инициализация','{\n'+setup+'\n}');
+    b.codePart(inst,'loop','stop','Основной цикл','{\n'+loop+'\n}');
     // FLProg uses *logical* SmallInteger IDs to identify library blocks and their
     // nested components. The SIXX object ids/idrefs above are serialization-local
     // and must remain untouched. Template logical IDs must NOT be exported verbatim.

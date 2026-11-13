@@ -47,7 +47,7 @@
       parsed: JSON.parse(JSON.stringify(parsed)),
       settings: { blockName: String(settings.blockName || ''),
         blockDescription: String(settings.blockDescription || ''),
-        enableInput: !!settings.enableInput, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'basic', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-2.0.17' }
+        enableInput: !!settings.enableInput, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-3.3.11' }
     };
   }
 
@@ -80,7 +80,7 @@
       // shifts, arithmetic) are banned, whether or not used in an array.
       const numeric = /^(?:\(?[+\-~]*\s*(?:\d|0[xX][a-fA-F0-9]))/.test(value) ||
         ['long', 'float'].includes(d.type);
-      if (numeric)
+      if (numeric && d.role !== 'parameter')
         addError('#define ' + name + ': числовой макрос несовместим с правилами ino2ubi / FLProg 9.8.0. Способ замены зависит от назначения макроса — см. «Как исправить» ниже.');
     }
 
@@ -198,18 +198,123 @@
     const loops = checkWhileSafety(code);
     const errors = [...safety.errors, ...flow.errors, ...loops.errors];
     const warnings = [...safety.warnings, ...flow.warnings, ...loops.warnings];
-    // RC2: avoid silently dropping global pointers/references parsed as unsupported declarations.
-    // Such declarations cannot be safely isolated across instances yet.
-    const globals = String(parsed.global_section_raw || '');
-    if (/^\s*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s*)\*\s*[A-Za-z_]\w*\s*(?:=|;)/m.test(globals) ||
-        /^\s*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s*)&\s*[A-Za-z_]\w*\s*(?:=|;)/m.test(globals))
-      errors.push('Глобальный указатель или ссылка C++: автоматическая изоляция экземпляров не подтверждена. Перенесите состояние в проверенные переменные/функции или адаптируйте блок вручную.');
-    if (/^\s*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+)\w+\s*\[[^\]\n]+\]/m.test(globals))
-      warnings.push('Массивы объектов C++ требуют ручной проверки нескольких экземпляров: имена не всегда получают UUID.');
+    // Always check the source rather than trusting saved .i2u.json metadata.
+    const fresh = typeof parseArduinoCode === 'function' ? parseArduinoCode(code) : parsed;
+    const globals = String(fresh.global_section_raw || '');
+    let cleanGlobals = typeof maskNonCode === 'function' ? maskNonCode(globals) : globals;
+    // Global section also contains helper bodies. Mask those entire functions;
+    // otherwise local C++ expressions (e.g. return value * gain) look like globals.
+    for (const helper of Object.values(fresh.functions || {})) {
+      if (Number.isInteger(helper.start) && Number.isInteger(helper.end) && helper.start < cleanGlobals.length) {
+        const end = Math.min(helper.end,cleanGlobals.length);
+        cleanGlobals = cleanGlobals.slice(0,helper.start) +
+          cleanGlobals.slice(helper.start,end).replace(/[^\n]/g,' ') + cleanGlobals.slice(end);
+      }
+    }
+    const declarations = cleanGlobals.replace(/^[ \t]*#(?:include|define|pragma)[^\n]*/gm, '');
+    // 64-bit and uncommon primitive types must never be silently mapped to 32-bit.
+    if (/\b(?:long\s+long|(?:u?int64_t)|unsigned\s+(?:int|char|short)|signed\s+char|int8_t|size_t)\s+[A-Za-z_*&]/.test(declarations))
+      errors.push('Неподдерживаемый глобальный тип C++: безопасное отображение типа в FLProg не доказано; используйте поддерживаемый тип либо отдельную реализацию.');
+    // Pointers, references, multidimensional indirection, pointer qualifiers.
+    if (/(?:^|[;{}\n])\s*(?:(?:static|extern|const|volatile|unsigned|signed|struct)\s+)*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*(?:\s*<[^;{}]+>)?(?:\s+[A-Za-z_]\w*)?)\s*[*&]+\s*(?:const\s+|volatile\s+|[*&]\s*)*[A-Za-z_]\w*/m.test(declarations))
+      errors.push('Глобальный указатель/ссылка C++: безопасная генерация и изоляция пока не поддерживаются.');
+    // Top-level static, arrays, templates, classes and simple ctor-less objects
+    // have no guaranteed per-instance isolation in existing Professional generator.
+    if (/(?:^|[;\n])\s*static\s+/m.test(declarations))
+      errors.push('Глобальная static-переменная: независимость экземпляров не обеспечена.');
+    if (/\b(?:enum|struct|class|union)\s+[A-Za-z_]\w*\s*[{;:]/.test(declarations))
+      errors.push('Глобальные enum/struct/class/union требуют отдельного безопасного преобразования.');
+    if (/\b(?:std::)?[A-Za-z_]\w*\s*<[^;\n]+>\s+[A-Za-z_]\w*\s*[;=({]/.test(declarations))
+      errors.push('Шаблонный глобальный объект: независимость экземпляров не подтверждена.');
+    if (/(?:^|[;\n])\s*(?:const\s+|volatile\s+)*[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*\[[^\]]*\]/m.test(declarations))
+      errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
+    // Nested constructor expressions can be mistaken for a primitive declaration
+    // by the lightweight parser (for example: String obj(String(pin));).
+    // Refuse the unsafe case instead of silently exporting a wrong variable.
+    if (/\bString\s+[A-Za-z_]\w*\s*\(\s*String\s*\(/.test(declarations))
+      errors.push('Вложенный конструктор String не поддерживается надёжно: экспорт остановлен, чтобы не потерять объявление объекта.');
+    const known = new Set(typeof PRIMITIVE_TYPES !== 'undefined' ? PRIMITIVE_TYPES : []);
+    for (const declaration of (fresh.extra_declarations || [])) {
+      const d=String(declaration).trim();
+      if (/^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*;?$/.test(d) && !known.has(d.split(/\s+/)[0]))
+        errors.push('Объект без аргументов конструктора ('+d+'): невозможно гарантировать UUID каждого экземпляра.');
+    }
+    // Guard against the parser silently omitting source declared after setup/loop.
+    const structural = typeof maskNonCode === 'function' ? maskNonCode(String(code)) : String(code);
+    const starts = [];
+    for (const fn of ['setup','loop']) {
+      const match = /\bvoid\s+(setup|loop)\s*\(\s*(?:void\s*)?\)\s*\{/g;
+      let m;
+      while ((m=match.exec(structural))) if(m[1]===fn) starts.push({start:m.index, brace:match.lastIndex-1, name:fn});
+    }
+    if (starts.length === 2) {
+      const ranges=[];
+      for (const entry of starts) {
+        let depth=1,j=entry.brace+1;
+        while (j<structural.length && depth>0) { if(structural[j]==='{')depth++; else if(structural[j]==='}')depth--;j++; }
+        if(depth) errors.push('Незакрытая фигурная скобка функции '+entry.name+'(): экспорт остановлен.');
+        ranges.push([entry.start,j]);
+      }
+      const tail = structural.slice(Math.max(...ranges.map(r=>r[1])))
+        .replace(/^[ \t]*#[^\n]*/gm,'').trim();
+      const between = structural.slice(Math.min(...ranges.map(r=>r[1])),Math.max(...ranges.map(r=>r[0])))
+        .replace(/^[ \t]*#[^\n]*/gm,'').trim();
+      // Helper functions after loop are already supported; reject only a bare declaration.
+      for (const piece of [tail,between]) {
+        const stripped=piece.replace(/(?:[A-Za-z_][\w:<>,*&\s]*\([^;{}]*\)\s*\{[^{}]*\})/g,'').trim();
+        if (/^(?:[A-Za-z_]\w*\s+){1,3}[A-Za-z_]\w*\s*(?:=|;|\[)/.test(stripped))
+          errors.push('Глобальное объявление после начала setup()/loop() может быть потеряно парсером: перенесите его перед setup().');
+      }
+    }
+    // Early detection of unsupported arbitrary globals without preventing include directives.
+    const full = String(code || '');
+    if (/^\s*#define[^\n]*\\\s*$/m.test(full))
+      errors.push('Многострочный #define с продолжением строки пока не поддерживается безопасно.');
+    if (/\b(?:WiFi|Wire|Serial|Serial1|Serial2)\s*\.\s*begin\s*\(/.test(structural))
+      warnings.push('Общий аппаратный ресурс: убедитесь, что Wi-Fi, I2C или UART инициализируется единственным владельцем.');
+    // An unrecognized annotated input/output/parameter must never disappear.
+    for (const line of globals.split('\n')) {
+      if (!/\/\/\s*(?:in|out|par|input|output|parameter)(?=\s*(?::|$))/i.test(line)) continue;
+      const decl = line.split('//')[0].trim();
+      const m = decl.match(/\b([A-Za-z_]\w*)\s*(?:=[^;]*)?;\s*$/);
+      if (m && !Object.prototype.hasOwnProperty.call(fresh.variables||{},m[1]))
+        errors.push('Помеченное объявление '+m[1]+' не распознано как контакт/параметр FLProg: экспорт заблокирован.');
+    }
+    // The generator groups variables, constructors and helpers; reject known
+    // dependency-on-source-order patterns rather than moving declarations blindly.
+    const knownGlobals = Object.keys(fresh.variables || {});
+    for (const raw of fresh.extra_declarations || []) {
+      const declaration = String(raw);
+      const initializer = declaration.replace(/^[^=(]*[=(]/,'');
+      const firstName = knownGlobals.find(n => new RegExp('\\b'+n+'\\b').test(initializer));
+      if (firstName && !/^PubSubClient\s/.test(declaration) &&
+          !(Array.isArray(parsed.declaration_order) && parsed.declaration_order.length))
+        errors.push('Глобальный конструктор зависит от переменной '+firstName+'; отсутствуют данные исходного порядка объявлений. Перепарсите скетч.');
+    }
+    for (const [name, info] of Object.entries(fresh.variables || {})) {
+      const value=String(info.default || '');
+      if (Object.values(fresh.functions || {}).some(f => new RegExp('\\b'+(f.name||'')+'\\s*\\(').test(value)))
+        errors.push('Инициализатор глобальной переменной '+name+' вызывает вспомогательную функцию; её прототип может отсутствовать в Code Professional.');
+    }
+    // Input/output variables cannot be declared const/volatile and rewritten as FLProg contacts safely.
+    for (const [name, info] of Object.entries((parsed && parsed.variables) || {})) {
+      if (info && info.role !== 'variable' && /\b(?:const|volatile|static)\b/.test(info.qualifiers || ''))
+        errors.push('Контакт/параметр '+name+': квалификаторы const/volatile/static не поддержаны для роли '+info.role+'.');
+    }
+    // Only non-primitive element types are object arrays. Primitive arrays
+    // already receive the blocking error above, so do not mislabel them.
+    const objectArray = /^\s*(?:const\s+|volatile\s+)*([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+[A-Za-z_]\w*\s*\[[^\]\n]*\]/gm;
+    let arrayMatch;
+    while ((arrayMatch=objectArray.exec(declarations))) {
+      if (!known.has(arrayMatch[1]) && !/^(?:int|long|short|char|bool|byte|float|double|unsigned|signed|size_t|u?int(?:8|16|32|64)_t)$/.test(arrayMatch[1])) {
+        warnings.push('Массивы объектов C++ требуют ручной проверки нескольких экземпляров: имена не всегда получают UUID.');
+        break;
+      }
+    }
     if (!code.trim()) errors.push('Исходный код пуст.');
-    if (!/\bvoid\s+setup\s*\(\s*\)\s*\{/m.test(code))
+    if (!/\bvoid\s+setup\s*\(\s*(?:void\s*)?\)\s*\{/m.test(code))
       errors.push('Не найдена функция void setup() {...}.');
-    if (!/\bvoid\s+loop\s*\(\s*\)\s*\{/m.test(code))
+    if (!/\bvoid\s+loop\s*\(\s*(?:void\s*)?\)\s*\{/m.test(code))
       errors.push('Не найдена функция void loop() {...}.');
     const vars = parsed.variables || {};
     const pins = Object.entries(vars).filter(([, value]) => ['input','output','parameter'].includes(value.role));
@@ -234,8 +339,8 @@
       warnings.push('Бесконечный цикл может остановить выполнение схемы FLProg.');
     if (/^\s*#\s*(?:if|ifdef|ifndef|else|elif|endif)\b/m.test(code))
       warnings.push('Условная компиляция #if/#ifdef требует проверки после импорта.');
-    if (/^\s*#define\s+\w+\s*\(/m.test(code))
-      warnings.push('Функциональные макросы #define могут быть обработаны некорректно.');
+    if (/^\s*#define\s+\w+\(/m.test(code))
+      warnings.push('Функциональный макрос #define: проверьте сохранение определения и вызовов в итоговом C++ FLProg.');
     return { errors, warnings };
   }
 

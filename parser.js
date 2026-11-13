@@ -44,7 +44,7 @@ function maskNonCode(text) {
 
 function extractFunctionBody(code, funcName) {
   const escaped = funcName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp('void\\s+' + escaped + '\\s*\\(\\s*\\)\\s*\\{');
+  const pattern = new RegExp('void\\s+' + escaped + '\\s*\\(\\s*(?:void\\s*)?\\)\\s*\\{');
   const masked = maskNonCode(code);
   const match = masked.match(pattern);
   if (!match) return '';
@@ -384,13 +384,17 @@ function parseGlobalSection(globalSection, functions) {
     // Маркер роли для #define ищем в комментарии на той же строке: // par
     const role = /\/\/\s*(?:par|parameter)\b/i.test(rest) ? 'parameter' : 'global';
     const value = maskComments(rest).trim();
-    defines.push({ name, value, role, type: inferDefineType(value), alias: roleLabel(line, role) || name, position: lineOffset });
+    defines.push({ name, value, role, type: inferDefineType(value), alias: roleLabel(line, role) || name,
+      raw: stripped.replace(/\s*\/\/.*$/, '').trimEnd(), position: lineOffset });
     lineOffset += line.length + 1;
   });
 
   const variables = {};
   const extraDeclarations = [];
   const staticDeclarations = [];
+  // Preserve declaration order independently from the editable variables map.
+  // Each entry identifies a parsed item without duplicating its editable value.
+  const declarationOrder = [];
 
   function normalizeType(typeName) {
     return typeName.trim().replace(/\s+/g, ' ');
@@ -408,7 +412,8 @@ function parseGlobalSection(globalSection, functions) {
     // Раньше мы их просто пропускали, теперь сохраняем как extra_declarations,
     // чтобы, например, строки вида "U8G2_ST7920_128X64_1_HW_SPI u8g2(...);" попадали в блок declare.
     if (/\w+\s*\([^)]*\)\s*$/.test(stmt) && !stmt.includes('=')) {
-      extraDeclarations.push(stmt + ';');
+      const index = extraDeclarations.push(stmt + ';') - 1;
+      declarationOrder.push({kind:'extra', index, position:startIdx});
       continue;
     }
 
@@ -425,9 +430,9 @@ function parseGlobalSection(globalSection, functions) {
     // Автоопределение роли переменной по комментарию на той же строке:
     // // in, // out, // par
     let role = 'variable';
-    if (/\/\/\s*(?:in|input)\b/i.test(lineText)) role = 'input';
-    else if (/\/\/\s*(?:out|output)\b/i.test(lineText)) role = 'output';
-    else if (/\/\/\s*(?:par|parameter)\b/i.test(lineText)) role = 'parameter';
+    if (/\/\s*(?:in|input)(?=\s*(?::|$))/i.test(lineText)) role = 'input';
+    else if (/\/\s*(?:out|output)(?=\s*(?::|$))/i.test(lineText)) role = 'output';
+    else if (/\/\s*(?:par|parameter)(?=\s*(?::|$))/i.test(lineText)) role = 'parameter';
 
     const qualifiers = stmt.match(/^\s*((?:(?:static|const|volatile)\s+)+)/);
     const qualifierText = qualifiers ? qualifiers[1].trim().replace(/\s+/g, ' ') + ' ' : '';
@@ -447,26 +452,32 @@ function parseGlobalSection(globalSection, functions) {
         if (!one) return;
         const [namePart, valuePart] = splitInitializer(one);
         if (isStatic || /\[[^\]]*\]/.test(namePart)) {
-          staticDeclarations.push(qualifierText + varType + ' ' + one + ';');
+          const index = staticDeclarations.push(qualifierText + varType + ' ' + one + ';') - 1;
+          declarationOrder.push({kind:'static', index, position:startIdx});
           return;
         }
         const nameMatch = namePart.match(/[A-Za-z_][A-Za-z0-9_]*/g);
         const varName = nameMatch ? nameMatch[nameMatch.length - 1] : null;
         if (!varName) return;
+        declarationOrder.push({kind:'variable', name:varName, position:startIdx});
         variables[varName] = {
           type: varType,
           default: valuePart,
           role,
+          qualifiers: qualifierText.trim(),
           alias: roleLabel(lineText, role) || varName,
           position: startIdx
         };
       });
       continue;
     }
-    if (/^[A-Za-z_][A-Za-z0-9_:<>]*\s+.+$/s.test(stmt)) extraDeclarations.push(stmt + ';');
+    if (/^[A-Za-z_][A-Za-z0-9_:<>]*\s+.+$/s.test(stmt)) {
+      const index = extraDeclarations.push(stmt + ';') - 1;
+      declarationOrder.push({kind:'extra', index, position:startIdx});
+    }
   }
 
-  return [variables, globalIncludes, defines, extraDeclarations, staticDeclarations];
+  return [variables, globalIncludes, defines, extraDeclarations, staticDeclarations, declarationOrder];
 }
 
 function parseArduinoCode(code) {
@@ -484,7 +495,7 @@ function parseArduinoCode(code) {
         declarationsOnly.slice(end);
     }
   }
-  const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations] =
+  const [variables, globalIncludes, defines, extraDeclarations, staticDeclarations, declarationOrder] =
     parseGlobalSection(declarationsOnly, functions);
   return {
     leading_comment: leadingComment,
@@ -494,7 +505,8 @@ function parseArduinoCode(code) {
     global_includes: globalIncludes,
     defines,
     extra_declarations: extraDeclarations,
-    static_declarations: staticDeclarations
+    static_declarations: staticDeclarations,
+    declaration_order: declarationOrder
   };
 }
 
