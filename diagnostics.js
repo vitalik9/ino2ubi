@@ -47,7 +47,43 @@
   function locate(code, message) {
     const clean = mask(code);
     let m, idx = -1, advice = '';
-    if ((m = message.match(/^#define\s+([A-Za-z_]\w*)/))) {
+    if ((m = message.match(/^(?:FlprogHardwarePwmPin|ModbusRTU)\s+([A-Za-z_]\w*)\.([A-Za-z_]\w*)\(\):/))) {
+      // Find the exact member call, not the first occurrence of the class.
+      idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\.\\s*' + escapeRegex(m[2]) + '\\s*\\('));
+      advice = 'Проверьте название метода и сигнатуру в библиотеке FLProg, установленной в Arduino IDE.';
+    } else if (/^Несколько вызовов initFlprogSystemTimer\(\)/.test(message)) {
+      idx = findByRegex(clean, /\binitFlprogSystemTimer\s*\(/);
+      advice = 'Flprog_HardwareTimer использует один callback; настройте один общий владелец таймера.';
+    } else if (/^initFlprogSystemTimer\(\):/.test(message)) {
+      idx = findByRegex(clean, /\binitFlprogSystemTimer\s*\(/);
+    } else if (/^initFlprogSystemTimer\([A-Za-z_]\w*\): callback/.test(message)) {
+      idx = findByRegex(clean, /\binitFlprogSystemTimer\s*\(/);
+      advice = 'Определите void callback() до использования или подключите заголовок с его объявлением; проверяйте сгенерированный FLProg C++.';
+    } else if (/^setFlprogSystemTimerTickPeriod(?:\(|\(\):)/.test(message)) {
+      idx = findByRegex(clean, /\bsetFlprogSystemTimerTickPeriod\s*\(/);
+      advice = 'Период должен быть в диапазоне 10…4294967295 мкс (uint32_t).';
+    } else if (/^Используется initFlprogSystemTimer\(\)\/API/.test(message)) {
+      idx = findByRegex(clean, /\binitFlprogSystemTimer\s*\(/);
+      if(idx < 0) idx = findByRegex(clean, /\b(?:set|get)FlprogSystemTimerTickPeriod\s*\(/);
+      advice = 'Добавьте #include <flprogSystemHardwareTimer.h>, если заголовок не подключается транзитивно.';
+    } else if (/^ModbusRTU: абстрактный класс/.test(message)) {
+      idx = findByRegex(clean, /\bModbusRTU\s+[A-Za-z_]\w*\s*(?:[;=(])/);
+      advice = 'Нельзя создать объект ModbusRTU: используйте ModbusMasterRTU или ModbusSlaveRTU с действительным UART executor.';
+    } else if ((m = message.match(/^FlprogHardwarePwmPin\s+([A-Za-z_]\w*): вызов tick/))) {
+      idx = findByRegex(clean, new RegExp('\\bFlprogHardwarePwmPin\\s+' + escapeRegex(m[1]) + '\\s*\\('));
+      advice = 'Обеспечьте периодические вызовы tick() для программного PWM; при ISR проверьте безопасность цифрового вывода.';
+    } else if (/^flprog::specialPoll\(\)/.test(message)) {
+      idx = findByRegex(clean, /\bflprog\s*::\s*specialPoll\s*\(/);
+      advice = 'Используйте flprog::specialPool() (с одним l перед скобкой).';
+    } else if ((m = message.match(/^Используется\s+(FlprogHardwarePwmPin|ModbusRTU|ModbusTCP), но нет явного #include/))) {
+      idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\b'));
+      advice = 'Добавьте подходящий #include или проверьте транзитивную зависимость в FLProg.';
+    } else if ((m = message.match(/^Заголовок\s+(\S+)\s+(?:встречается|найден|отсутствует)/))) {
+      idx = findByRegex(code, new RegExp('^[ \t]*#\\s*include\\s*[<\"]' + escapeRegex(m[1]) + '[>\"]', 'm'));
+    } else if (/^Повторные #include:/.test(message)) {
+      m = message.match(/^Повторные #include:\s*([^,\s.]+)/);
+      if (m) idx = findByRegex(code, new RegExp('^[ \t]*#\\s*include\\s*[<\"]' + escapeRegex(m[1]) + '[>\"]', 'm'));
+    } else if ((m = message.match(/^#define\s+([A-Za-z_]\w*)/))) {
       idx = findByRegex(code, new RegExp('^[ \t]*#\\s*define\\s+' + escapeRegex(m[1]) + '\\b', 'm'));
       advice = numericDefineAdvice(code, m[1]);
     } else if ((m = message.match(/^Массив\s+([A-Za-z_]\w*)\[([^\]]*)\]/))) {
@@ -178,8 +214,8 @@
   function enrich(source, result) {
     const code = String(source || '');
     const issues = [];
-    for (const severity of ['error', 'warning']) {
-      for (const message of result[severity === 'error' ? 'errors' : 'warnings'] || []) {
+    for (const severity of ['error', 'warning', 'info']) {
+      for (const message of result[severity === 'error' ? 'errors' : (severity === 'warning' ? 'warnings' : 'infos')] || []) {
         const place = locate(code, String(message));
         issues.push({ severity, message: String(message), ...place });
       }

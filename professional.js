@@ -14,6 +14,38 @@
     'float':'FloatDataType', 'double':'FloatDataType', 'String':'StringDataType'
   };
   const RECOGNIZED = new Set(Object.keys(TYPE));
+  // FIX30: check declared numeric ranges before serializing editable FLProg fields.
+  // ESP32 Arduino: integer/long/unsigned long are 32-bit, uint8_t/16_t/32_t are fixed width.
+  const INTEGRAL_RANGES = Object.freeze({
+    'byte': [0n, 255n], 'uint8_t': [0n, 255n],
+    'int16_t': [-32768n, 32767n], 'uint16_t': [0n, 65535n],
+    'int': [-2147483648n, 2147483647n],
+    'long': [-2147483648n, 2147483647n],
+    'int32_t': [-2147483648n, 2147483647n],
+    'unsigned long': [0n, 4294967295n], 'uint32_t': [0n, 4294967295n]
+  });
+  function validateParameterDefault(name, info) {
+    const type = String(info.type || '');
+    const raw = String(info.default == null ? (type === 'String' ? '' : '0') : info.default).trim();
+    if (type === 'bool' || type === 'boolean') {
+      if (!/^(?:true|false|0|1)$/i.test(raw))
+        throw new Error('Параметр ' + name + ': bool допускает только true, false, 0 или 1 (получено: ' + raw + ').');
+      return /^(?:true|1)$/i.test(raw) ? 'true' : 'false';
+    }
+    if (type === 'float' || type === 'double') {
+      const value = raw.replace(/[fF]$/, '');
+      if (!value || !Number.isFinite(Number(value)) || !/^[+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$/.test(value))
+        throw new Error('Параметр ' + name + ': ожидается конечное числовое значение, получено ' + raw + '.');
+      return value;
+    }
+    if (type === 'String') return raw.replace(/^['"]|['"]$/g, '');
+    if (type === 'char') return normalizeCppIntegerDefault(raw, name); // signedness of char is target-dependent
+    const value = normalizeCppIntegerDefault(raw, name);
+    const range = INTEGRAL_RANGES[type];
+    if (range && (BigInt(value) < range[0] || BigInt(value) > range[1]))
+      throw new Error('Параметр ' + name + ' (' + type + '): значение ' + raw + ' вне диапазона ' + range[0] + '..' + range[1] + '.');
+    return value;
+  }
   function child(node, name) {
     return Array.from(node.children).find(n => n.getAttribute(nameAttr) === name) || null;
   }
@@ -94,7 +126,7 @@
       bool(n,'isTextConstant',false);
       return n;
     }
-    const userIO = new Map(), userParams = new Map(), userVars = new Set();
+    const userIO = new Map(), userParams = new Map(), userVars = new Set(), userFunctions = new Set();
     let currentInstance=null;
     function inputOutput(instance, name, info) {
       if (!safeIdentifier(name)) throw new Error('Неверное имя контакта C++: ' + name);
@@ -126,17 +158,9 @@
       core(p,'description','String','');
       core(p,'conditionType','Symbol','none');
       dataType(p,info.type);
-      let value=info.default == null ? (info.type==='String' ? '' : '0') : String(info.default);
-      if (info.type==='String') value=value.replace(/^['"]|['"]$/g,'');
+      const value = validateParameterDefault(name, info);
       const isBoolean=info.type==='bool' || info.type==='boolean';
       const numberType=info.type==='String'?'String':info.type==='float'||info.type==='double'?'Float':'SmallInteger';
-      if (numberType==='Float') {
-        value=value.replace(/[fF]$/, '');
-        if (!Number.isFinite(Number(value))) throw new Error('Некорректное значение float параметра '+name+': '+value);
-      }
-      if (numberType==='SmallInteger' && !isBoolean) {
-        value = normalizeCppIntegerDefault(value, name);
-      }
       if (!isBoolean) {
         // As in working FLProg Professional UBI libraries: editable value input.
         const species=ard(p,'parametrSpecies','UserCodeMultiBlockInputFieldParametrSpecies');
@@ -242,7 +266,7 @@
     }
     function partsFromCode(text,items) {
       // Replace C++ identifiers by native FLProg references, without touching comments or literals.
-      const symbols=Array.from(new Set([...userIO.keys(),...userParams.keys(),...userVars]));
+      const symbols=Array.from(new Set([...userIO.keys(),...userParams.keys(),...userVars,...userFunctions]));
       const source=String(text || '');
       if (!symbols.length) {items.appendChild(plain(source));return;}
       const regex=new RegExp('\\b('+symbols.sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
@@ -253,9 +277,27 @@
         const before=source.slice(cursor,match.index);
         items.appendChild(plain(before));
         const key=match[0];
-        if (userVars.has(key)) {
+        // Helper functions, like instance-local state, must be unique in each
+        // FLProg block instance. The native UUID tag is expanded by FLProg.
+        // Only rewrite actual function names (definition/call), never a field
+        // named identically in an object, a namespace member, or a string.
+        const prev=masked.slice(0,match.index).trimEnd();
+        const next=masked.slice(match.index+key.length);
+        const functionUse=userFunctions.has(key) && /^\s*\(/.test(next) &&
+          !/(?:\.|->|::)$/.test(prev);
+        // FIX36: function pointers passed to the FLProg hardware timer must be
+        // renamed too. A bare callback reference lacks the '(' of a call.
+        // Limit this rewrite to the verified timer API, rather than guessing
+        // whether every bare function name is a C++ pointer expression.
+        const timerCallbackUse=userFunctions.has(key) &&
+          /\binitFlprogSystemTimer\s*\(\s*&?$/.test(prev) &&
+          /^\s*\)/.test(next);
+        const variableUse=userVars.has(key) && !/(?:\.|->|::)$/.test(prev);
+        if (functionUse || timerCallbackUse || variableUse) {
           items.appendChild(plain(key+'_'));
           items.appendChild(uuidTag(currentInstance));
+        } else if (userFunctions.has(key)) {
+          items.appendChild(plain(key));
         } else {
           items.appendChild(newTag(userIO.get(key)||userParams.get(key),userIO.has(key)));
         }
@@ -265,6 +307,11 @@
     }
     function codePart(instance, sectionName, position, codeName, source) {
       if (!String(source || '').trim()) return;
+      // FIX29: FLProg concatenates code fragments from adjacent instances
+      // verbatim. A terminal newline prevents `}NextStatement` and, more
+      // importantly, prevents a trailing // comment from swallowing the
+      // first statement of the next instance. No C++ expression is rewritten.
+      source=String(source).replace(/\s+$/, '')+'\n';
       currentInstance=instance;
       const partData=required(instance,'codeData');
       const section=required(partData,sectionName+'Section');
@@ -289,7 +336,7 @@
       for (const c of Array.from(arr.children)) arr.removeChild(c);
       core(arr,null,'SmallInteger',description.length);
     }
-    return {doc,object,core,ard,required,child,refId,add,inputOutput,parameter,codePart,updateDescription,addVar:n=>userVars.add(n)};
+    return {doc,object,core,ard,required,child,refId,add,inputOutput,parameter,codePart,updateDescription,addVar:n=>userVars.add(n),addFunction:n=>userFunctions.add(n)};
   }
   function helperDefinitions(state) {
     return Object.entries(state.functions||{}).filter(([name])=>name!=='setup' && name!=='loop');
@@ -339,9 +386,60 @@
       if (v.role==='parameter') b.parameter(inst,n,v);
     }
     const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value,alias:d.alias||d.name}:d);
-    for (const p of defines) if (p.role==='parameter' && !variables[p.name]) b.parameter(inst,p.name,p);
+    // FIX30: a #define and a declared C++ variable with the same identifier
+    // cannot silently be interpreted as two different FLProg sources.
+    // Reject collisions before writing any .ubi XML.
+    const defineNames = new Set();
+    for (const d of defines) {
+      if (!safeIdentifier(d.name || '')) throw new Error('Недопустимое имя #define: ' + String(d.name));
+      if (defineNames.has(d.name)) throw new Error('Повторное объявление #define: ' + d.name);
+      defineNames.add(d.name);
+      if (Object.prototype.hasOwnProperty.call(variables, d.name))
+        throw new Error('Конфликт имени ' + d.name + ': одновременно переменная и #define. Устраните конфликт в исходном Arduino-коде.');
+    }
+    for (const p of defines) if (p.role==='parameter') b.parameter(inst,p.name,p);
     // Keep ordinary helper functions inside UBI: a separate header is NOT required.
     const helpers=helperDefinitions(state);
+    // Register all helper names before emitting any section so calls in setup,
+    // loop and other helpers use the same per-instance FLProg UUID.
+    // C++ overloads share the same suffixed name, retaining overload resolution.
+    for (const [key, fn] of helpers) {
+      const helperName=fn.name||key;
+      if (!safeIdentifier(helperName))
+        throw new Error('Недопустимое имя вспомогательной функции: '+helperName);
+      if (variables[helperName] || defines.some(d=>d.name===helperName))
+        throw new Error('Имя функции конфликтует с переменной или параметром: '+helperName);
+      b.addFunction(helperName);
+    }
+    // FIX39: constructor-initialized library objects are parsed as
+    // extra_declarations, not scalar state.variables. They must nevertheless
+    // receive FLProg's per-instance UUID in BOTH their declaration and uses.
+    // Only accept a straightforward global `Type name(args);` declaration;
+    // never guess inside templates, function prototypes, or arbitrary C++.
+    function constructorObjectName(declaration) {
+      const line=String(declaration||'').trim();
+      const match=line.match(/^([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+([A-Za-z_]\w*)\s*\(([^;{}]*)\)\s*;$/);
+      if (!match) return null;
+      const type=match[1], name=match[2], args=match[3].trim();
+      // `void helper(...)` and other function prototypes are not objects.
+      if (RECOGNIZED.has(type) || /^(?:void|auto|size_t|const|unsigned|signed)$/.test(type)) return null;
+      // Require actual constructor arguments to distinguish from the common
+      // zero-argument function declaration (`Type foo();`).
+      if (!args) return null;
+      return name;
+    }
+    const constructorObjects=new Set();
+    for (const decl of state.extra_declarations||[]) {
+      const raw=typeof decl==='string'?decl:(decl.code||decl.text||'');
+      const objectName=constructorObjectName(raw);
+      if (!objectName) continue;
+      if (constructorObjects.has(objectName) || variables[objectName] ||
+          defines.some(d=>d.name===objectName) ||
+          helpers.some(([key,f])=>(f.name||key)===objectName))
+        throw new Error('Дублирование имени объекта библиотеки: '+objectName);
+      constructorObjects.add(objectName);
+      b.addVar(objectName);
+    }
     const includesFromSource=externalIncludes(state).map(s=>s.match(/"([^"]+)"/)[1]);
     const providedName=String(options.additionalHeaderFilename||'').trim();
     const headerName=providedName && /^(?!\.)[\w.-]+\.hpp?$/i.test(providedName) ? providedName : sanitizeName(name)+'.hpp';
@@ -366,7 +464,7 @@
     );
     if (unsafeCtorObjects.length) {
       const names=unsafeCtorObjects.map(([n,v])=>v.type+' '+n).join(', ');
-      throw new Error('Code Professional: неподтверждённые объявления объектов с конструктором ('+names+'). FLProg 9.8.0 может аварийно завершиться (#declaringString). Экспорт остановлен для защиты проекта. Code Basic доступен; требуется проверенный образец Professional .ubi с такими объектами.');
+      throw new Error('Code Professional: неподтверждённые объявления объектов с конструктором ('+names+'). FLProg 9.8.0 может аварийно завершиться (#declaringString). Экспорт остановлен для защиты проекта. Требуется проверенный образец Professional .ubi с такими объектами.');
     }
     // FIX19 (diagnostic): a PubSubClient transport is bound in setup(), not in a
     // global constructor initializer. This preserves the PubSubClient API and
@@ -378,6 +476,10 @@
     // remain unchanged because a generic fallback can silently alter behavior.
     const declarations=(state.extra_declarations||[]).map(x=>{
       const line=typeof x==='string'?x:(x.code||x.text||'');
+      // An original forward declaration for a parsed helper would otherwise
+      // retain its unsuffixed name and refer to another block instance.
+      const proto=line.trim().match(/^[\w\s:*&<>]+?\s+([A-Za-z_]\w*)\s*\([^;{}]*\)\s*;$/);
+      if (proto && helpers.some(([key,f])=>(f.name||key)===proto[1])) return '';
       const ctor=line.trim().match(/^PubSubClient\s+([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)\s*;$/);
       if (!ctor) return line;
       pubsubClientBindings.push(ctor[1]+'.setClient('+ctor[2]+');');
@@ -451,6 +553,7 @@
     const xml=new XMLSerializer().serializeToString(b.doc);
     const checked=new DOMParser().parseFromString(xml,'application/xml');
     ensureXml(checked);
+    auditProfessionalStructure(checked);
     // Do not export an unresolvable input/output tag: that crashed FLProg (#isInput).
     const compiledTags=Array.from(checked.getElementsByTagName('sixx.object')).filter(
       el=>el.getAttribute('sixx.type')==='UserCodeMultiBlockUseInCodeInputOutputTag' &&
@@ -462,10 +565,95 @@
     }
     const deps=includesFromSource;
     const unmatched=deps.filter(s=>!(hpp && s===headerName));
+    // FIX32: detect source-header dependencies using the supplied archive's
+    // filename inventory; never rewrite or silently remove source #include lines.
+    const libraryAudit = window.ino2ubiLibraryAudit
+      ? window.ino2ubiLibraryAudit.analyze(state.global_includes || [])
+      : {includes:[],groups:{flprog:[],rt_hw:[],other:[]},warnings:[]};
+    const libraryGroups = libraryAudit.groups;
+    const dependencyWarnings = libraryAudit.warnings;
     if (hpp && !/^(?!\.)[A-Za-z_][A-Za-z0-9_.-]*\.hpp?$/i.test(headerName)) throw new Error('Недопустимое имя заголовочного файла.');
     return {xml,hpp,headerName: hpp?headerName:null,dependencies:[...new Set(unmatched)],
-      warnings:[],
+      libraryGroups, libraryAudit:libraryAudit.includes, warnings:dependencyWarnings,
       filename:sanitizeName(name)};
+  }
+  // Structural audit based on actual Code Professional candidate UBI exports.
+  // It validates the SIXX object graph without rewriting the working FIX24 code sections.
+  function auditProfessionalStructure(doc) {
+    ensureXml(doc);
+    const root=doc.documentElement;
+    const main=required(root,'mainBlock');
+    const instances=required(required(main,'blockInstancesLibrary'),'items');
+    const blocks=children(instances,'UserCodeMultiBlockBlockInstance');
+    if (blocks.length!==1) throw new Error('Code Professional: ожидается ровно один экземпляр блока.');
+    const inst=blocks[0];
+    const nodes=Array.from(doc.getElementsByTagName('sixx.object'));
+    const ids=new Map();
+    for (const node of nodes) {
+      const id=node.getAttribute(idAttr);
+      if (id!==null) {
+        if (ids.has(id)) throw new Error('Code Professional: повторяется sixx.id '+id);
+        ids.set(id,node);
+      }
+    }
+    for (const node of nodes) {
+      const ref=node.getAttribute(refAttr);
+      if (ref!==null && !ids.has(ref))
+        throw new Error('Code Professional: отсутствует объект sixx.idref '+ref);
+    }
+    const ioList=[];
+    for (const libName of ['inputsLibrary','outputsLibrary']) {
+      const items=required(required(inst,libName),'items');
+      for (const entry of Array.from(items.children)) {
+        const node=entry.getAttribute(refAttr)?ids.get(entry.getAttribute(refAttr)):entry;
+        if (node.getAttribute('sixx.type')!=='UserCodeMultiBlockInputOutput')
+          throw new Error('Code Professional: недопустимый объект в '+libName);
+        ioList.push(node);
+      }
+    }
+    for (const node of ioList) {
+      const type=child(node,'type');
+      if (!type || (!type.getAttribute('sixx.type') && !type.getAttribute(refAttr)))
+        throw new Error('Code Professional: отсутствует тип контакта.');
+    }
+    let parts=0;
+    const codeData=required(inst,'codeData');
+    for (const sectionName of ['declare','setup','loop','function']) {
+      const section=required(codeData,sectionName+'Section');
+      const positions=sectionName==='function'?['code']:['start','stop',...(sectionName==='loop'?['insept']:[])];
+      for (const pos of positions) {
+        const holder=child(section,pos+'Part');
+        if (!holder) {
+          if (pos==='insept') continue; // not every FLProg template uses the insertion slot
+          throw new Error('Code Professional: отсутствует '+sectionName+'.'+pos+'Part');
+        }
+        const items=required(holder,'items');
+        for (const part of children(items,'UserCodeMultiBlockCodePartsInstance')) {
+          parts++;
+          const sectionValue=required(part,'section').textContent;
+          const positionValue=required(part,'position').textContent;
+          if (sectionValue!==sectionName || positionValue!==(pos==='code'?'stop':pos))
+            throw new Error('Code Professional: несоответствие метаданных секции '+sectionName+'.'+pos);
+          const codeText=required(part,'codeText');
+          if (codeText.getAttribute('sixx.type')!=='OrderedCollection')
+            throw new Error('Code Professional: повреждён codeText.');
+          for (const edit of Array.from(codeText.children)) {
+            if (edit.getAttribute('sixx.type')!=='UserCodeMultiBlockEditorCodeObject')
+              throw new Error('Code Professional: недопустимый объект кода.');
+            const kind=required(edit,'type').textContent;
+            if (kind!=='plainText' && kind!=='codeTag')
+              throw new Error('Code Professional: неизвестный тип объекта кода '+kind);
+            const val=required(edit,'value');
+            if (kind==='plainText' && val.getAttribute('sixx.type')!=='String')
+              throw new Error('Code Professional: повреждён текст программы.');
+            if (kind==='codeTag' && !val.getAttribute('sixx.type') && !val.getAttribute(refAttr))
+              throw new Error('Code Professional: повреждён тег программы.');
+          }
+        }
+      }
+    }
+    if (!parts) throw new Error('Code Professional: отсутствуют секции C++ кода.');
+    return {parts,contacts:ioList.length,objects:ids.size};
   }
   function crc32(data) {
     let crc=0xFFFFFFFF;

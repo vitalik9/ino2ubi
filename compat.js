@@ -47,7 +47,7 @@
       parsed: JSON.parse(JSON.stringify(parsed)),
       settings: { blockName: String(settings.blockName || ''),
         blockDescription: String(settings.blockDescription || ''),
-        enableInput: !!settings.enableInput, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'basic', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: 'esp32-arduino-2.0.17' }
+        enableInput: !!settings.enableInput, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'basic', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-2.0.17' }
     };
   }
 
@@ -198,6 +198,14 @@
     const loops = checkWhileSafety(code);
     const errors = [...safety.errors, ...flow.errors, ...loops.errors];
     const warnings = [...safety.warnings, ...flow.warnings, ...loops.warnings];
+    // RC2: avoid silently dropping global pointers/references parsed as unsupported declarations.
+    // Such declarations cannot be safely isolated across instances yet.
+    const globals = String(parsed.global_section_raw || '');
+    if (/^\s*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s*)\*\s*[A-Za-z_]\w*\s*(?:=|;)/m.test(globals) ||
+        /^\s*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s*)&\s*[A-Za-z_]\w*\s*(?:=|;)/m.test(globals))
+      errors.push('Глобальный указатель или ссылка C++: автоматическая изоляция экземпляров не подтверждена. Перенесите состояние в проверенные переменные/функции или адаптируйте блок вручную.');
+    if (/^\s*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+)\w+\s*\[[^\]\n]+\]/m.test(globals))
+      warnings.push('Массивы объектов C++ требуют ручной проверки нескольких экземпляров: имена не всегда получают UUID.');
     if (!code.trim()) errors.push('Исходный код пуст.');
     if (!/\bvoid\s+setup\s*\(\s*\)\s*\{/m.test(code))
       errors.push('Не найдена функция void setup() {...}.');

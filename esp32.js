@@ -211,5 +211,42 @@
 
     return { target: TARGET, errors, warnings, ok: errors.length === 0 };
   }
-  root.ino2ubiEsp32 = { target: TARGET, checkEsp32Core2017, callArgumentCounts, checkBlockingNetworkCalls };
+  function checkEsp32Core3311(source, parsed) {
+    const code=String(source||'');
+    const clean=maskNonCodeSafe(code);
+    const errors=[], warnings=[];
+    const addError=m=>{ if(!errors.includes(m)) errors.push(m); };
+    const addWarning=m=>{ if(!warnings.includes(m)) warnings.push(m); };
+    const removed=[
+      ['ledcSetup','В Core 3.x используйте ledcAttach(pin, frequency, resolution).'],
+      ['ledcAttachPin','В Core 3.x привязка канала заменена на ledcAttach(pin, frequency, resolution) или ledcAttachChannel().'],
+      ['ledcDetachPin','В Core 3.x используйте ledcDetach(pin).'],
+      ['timerAlarmWrite','В Core 3.x используйте timerAlarm(timer, ticks, autoreload, reloadCount).'],
+      ['timerAlarmEnable','В Core 3.x настройка/запуск сигнализации выполняется через timerAlarm().'],
+      ['timerAlarmDisable','Проверьте новый API таймера в Core 3.x.']
+    ];
+    for(const [fn,advice] of removed) if(new RegExp('\\b'+fn+'\\s*\\(').test(clean)) addError(fn+'(): несовместимо с Arduino-ESP32 3.3.11. '+advice);
+    for(const call of callArgumentCounts(clean,'timerBegin'))
+      if(call.count!==1) addError('timerBegin(): для Core 3.3.11 нужен один аргумент — частота таймера.');
+    for(const call of callArgumentCounts(clean,'timerAttachInterrupt'))
+      if(call.count!==2) addError('timerAttachInterrupt(): для Core 3.3.11 нужны (timer, callback).');
+    for(const call of callArgumentCounts(clean,'timerAlarm'))
+      if(call.count!==4) addError('timerAlarm(): для Core 3.3.11 нужны 4 аргумента.');
+    if(/^\s*#\s*include\s*[<"]ESP8266WiFi\.h[>"]/m.test(code)||/\bESP8266WebServer\b/.test(clean))
+      addError('Обнаружен код ESP8266: для ESP32 нужны совместимые библиотеки.');
+    if(/\bledcWrite\s*\(/.test(clean))
+      addWarning('В Core 3.x ledcWrite() принимает GPIO, а в Core 2.x — канал. Проверьте смысл аргумента.');
+    if(/\b(?:xTaskCreatePinnedToCore|attachInterrupt|esp_now_register_recv_cb)\s*\(/.test(clean))
+      addWarning('Callbacks и FreeRTOS-задачи требуют проверки потокобезопасности.');
+    if(/\b(?:WiFi\.begin|WiFi\.mode|esp_now_init)\s*\(/.test(clean))
+      addWarning('Несколько блоков FLProg не должны независимо конфликтовать за управление Wi-Fi/ESP-NOW.');
+    for(const warning of checkBlockingNetworkCalls(code).warnings) addWarning(warning);
+    return {target:{board:'ESP32',core:'3.3.11',id:'esp32-arduino-3.3.11'},errors,warnings,ok:errors.length===0};
+  }
+  function checkEsp32Core(source, parsed, core) {
+    if(core==='2.0.17') return checkEsp32Core2017(source,parsed);
+    if(core==='3.3.11') return checkEsp32Core3311(source,parsed);
+    throw new Error('Неизвестная версия Arduino ESP32 Core: '+core);
+  }
+  root.ino2ubiEsp32 = { target: TARGET, checkEsp32Core2017, checkEsp32Core3311, checkEsp32Core, callArgumentCounts, checkBlockingNetworkCalls };
 })(typeof window !== 'undefined' ? window : globalThis);

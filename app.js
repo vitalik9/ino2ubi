@@ -36,6 +36,7 @@
   const compat = window.ino2ubiCompat;
   const esp32 = window.ino2ubiEsp32;
   const btnCheckEsp32 = document.getElementById('btnCheckEsp32');
+  const CORE_VERSION = '3.3.11'; // Единственный целевой ESP32 Arduino Core
   const diagnosticsEl = document.getElementById('esp32Diagnostics');
   const btnClear = document.getElementById('btnClear');
   const btnParse = document.getElementById('btnParse');
@@ -54,21 +55,9 @@
     return clean.slice(0, 24).replace(/\s+\S*$/, '').trim() || clean.slice(0, 24);
   }
   const enableInput = document.getElementById('enableInput');
-  const exportMode = document.getElementById('exportMode');
-  const professionalSettings = document.getElementById('professionalSettings');
-  // Professional uses the same source editor as Basic; no separate header input.
-
+  // Единственный формат экспорта — Code Professional.
   const formatHelp = document.getElementById('formatHelp');
-  function refreshExportMode() {
-    const professional = exportMode.value === 'professional';
-    professionalSettings.hidden = !professional;
-    btnGenerate.textContent = professional ? 'Сгенерировать Code Professional .ubi' : 'Сгенерировать .ubi и скачать';
-    formatHelp.textContent = professional ?
-      'Code Professional: экспериментальный MultiBlock; скачивается один файл .ubi без ZIP. Проверьте импорт и компиляцию в FLProg 9.8.0.' :
-      'Code Basic: сохранён прежний экспорт .ubi; проверяются только ошибки.';
-  }
-  exportMode.addEventListener('change', refreshExportMode);
-  refreshExportMode();
+  const remoteXYNotSupported = 'RemoteXY пока не поддерживается в Code Professional. Экспорт отключён.';
   const remoteXYEepromBox = document.getElementById('remoteXYEepromBox');
   const remoteXYEepromOffset = document.getElementById('remoteXYEepromOffset');
   const remoteXYEepromStatus = document.getElementById('remoteXYEepromStatus');
@@ -122,20 +111,24 @@
   // All checks are run on «Парсить код», manual check and before export.
   function runChecks(code, parsed) {
     const converter = compat.validateConverterInput(code, parsed, enableInput.checked);
-    const board = esp32.checkEsp32Core2017(code, parsed);
+    const board = esp32.checkEsp32Core(code, parsed, CORE_VERSION);
+    const api = window.ino2ubiFlprogApiAudit ? window.ino2ubiFlprogApiAudit.analyze(code) : {errors:[],warnings:[],infos:[]};
+    const headers = window.ino2ubiLibraryAudit ? window.ino2ubiLibraryAudit.analyze((parsed && parsed.global_includes) || []) : {warnings:[],infos:[]};
     return {
-      errors: [...new Set([...converter.errors, ...board.errors])],
-      warnings: [] // Режим отображения только ошибок; проверки ошибок сохранены.
+      errors: [...new Set([...converter.errors, ...board.errors, ...api.errors])],
+      warnings: [...new Set([...converter.warnings, ...board.warnings, ...api.warnings, ...headers.warnings])],
+      infos: [...new Set([...(api.infos || []), ...(headers.infos || [])])]
     };
   }
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: [] });
+    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [], infos: result.infos || [] });
     diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
-    heading.textContent = 'Проверка ino2ubi / ESP32 Core 2.0.17: ' +
-      result.errors.length + ' ошибок';
+    heading.textContent = 'Проверка ino2ubi / ESP32 Core ' + CORE_VERSION + ': ' +
+      result.errors.length + ' ошибок, ' + (result.warnings || []).length + ' предупреждений' +
+      ((result.infos || []).length ? ', ' + result.infos.length + ' информационных сообщений' : '');
     diagnosticsEl.appendChild(heading);
     if (!issues.length) {
       const ok = document.createElement('p');
@@ -151,7 +144,7 @@
       item.className = 'diagnostic-item diagnostic-' + issue.severity;
       const label = document.createElement('div');
       label.className = 'diagnostic-message';
-      label.textContent = 'Ошибка: ' + issue.message;
+      label.textContent = (issue.severity === 'warning' ? 'Предупреждение: ' : (issue.severity === 'info' ? 'Информация: ' : 'Ошибка: ')) + issue.message;
       item.appendChild(label);
       if (issue.line !== null) {
         const jump = document.createElement('button');
@@ -178,7 +171,7 @@
       } else {
         const missing = document.createElement('span');
         missing.className = 'diagnostic-location-unknown';
-        missing.textContent = 'Точную строку определить не удалось';
+        missing.textContent = issue.severity === 'info' ? 'Справочная информация — без привязки к строке' : 'Точную строку определить не удалось';
         item.appendChild(missing);
       }
       if (issue.advice) {
@@ -207,8 +200,7 @@
     try {
       let result;
       if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
-        const parsedRemote = window.parseRemoteXYWiFi(code); // Validate mode and format.
-        result = remoteXYChecks(parsedRemote);
+        result = { errors: [remoteXYNotSupported], warnings: [] };
       } else {
         const parsed = parsedSource === code ? state : window.parseArduinoCode(code);
         result = runChecks(code, parsed);
@@ -248,10 +240,7 @@
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;
-        exportMode.value = data.settings.exportMode === 'professional' ? 'professional' : 'basic';
-
-
-        refreshExportMode();
+        // Старые проекты открываются, но проверяются только под Core 3.3.11.
         parsedSource = data.code;
         if (/\bRemoteXY_CONF_PROGMEM\b/.test(data.code)) {
           const savedAliases = {};
@@ -336,7 +325,7 @@
     const project = compat.makeProject(codeInput.value, state, {
       blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
-      exportMode: exportMode.value
+      exportMode: 'professional', targetProfile: 'esp32-arduino-' + CORE_VERSION
     });
     const filename = (blockName.value || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.i2u.json';
     downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json;charset=utf-8' }), filename);
@@ -425,33 +414,9 @@
     // Dedicated RemoteXY parser: these generated sketches require a packed
     // GUI structure and FLProg-owned Wi-Fi, not ordinary #define processing.
     if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
-      try {
-        const built = window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY Greenhouse', { eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0 });
-        remoteXYMode = true;
-        showRemoteXYEeprom(built.data);
-        remoteXYPreview = {
-          'setup()': { name: 'setup()', return_type: 'void', params: '(нет)', body: built.setupCode },
-          'loop()': { name: 'loop()', return_type: 'void', params: '(нет)', body: built.loopCode }
-        };
-        parsedSource = code;
-        state = {variables: built.variables, functions: {}, global_includes: [], defines: [], extra_declarations: [], static_declarations: []};
-        if (!blockName.value.trim() || blockName.value === 'Custom Block') blockName.value = 'RemoteXY_Greenhouse';
-        blockDesc.value = built.description;
-        enableInput.checked = false;
-        renderVariables();
-        renderFunctions();
-        showEsp32Diagnostics(remoteXYChecks(built.data), code);
-        setStatus('RemoteXY (' + ({wifi:'Wi-Fi',ap:'точка доступа',cloud:'Cloud'}[built.data.connection.mode]) + '): прочитана конфигурация (' + built.data.bytes.length + ' байт), найдено ' +
-          Object.values(built.variables).filter(v => v.role === 'input').length + ' вход(а) и ' +
-          Object.values(built.variables).filter(v => v.role === 'output').length + ' выход(а). Нажмите «Сгенерировать .ubi».');
-      } catch (e) {
-        remoteXYMode = false; remoteXYPreview = null; parsedSource = null;
-        showRemoteXYEeprom(null);
-        state = { variables: {}, functions: {}, global_includes: [], defines: [], extra_declarations: [], static_declarations: [] };
-        renderVariables(); renderFunctions();
-        showEsp32Diagnostics({ errors: [e.message], warnings: [] }, code);
-        setStatus(e.message, true);
-      }
+      remoteXYMode = false;
+      parsedSource = null;
+      setStatus(remoteXYNotSupported, true);
       return;
     }
     remoteXYMode = false;
@@ -576,159 +541,64 @@
     modalCancel.onclick = function () { modalEdit.hidden = true; };
   }
 
-  function stringToUtf16LeBlob(str) {
-    var len = str.length;
-    var buf = new ArrayBuffer(2 + len * 2);
-    var view = new DataView(buf);
-    view.setUint16(0, 0xFEFF, true);
-    for (var i = 0; i < len; i++) {
-      view.setUint16(2 + i * 2, str.charCodeAt(i), true);
-    }
-    return new Blob([buf], { type: 'application/octet-stream' });
-  }
 
-  // «Парсить RemoteXY» вызывает разбор без экспорта. Файл скачивается исключительно через btnGenerate.
-  var btnRemoteXY = document.getElementById('btnRemoteXY');
-  if (btnRemoteXY) btnRemoteXY.addEventListener('click', function () {
-    if (!/\bRemoteXY_CONF_PROGMEM\b/.test(codeInput.value)) {
-      setStatus('Для режима RemoteXY вставьте полный Arduino-скетч с RemoteXY_CONF_PROGMEM.', true);
-      return;
-    }
-    // Единый путь разбора; никаких downloadBlob() или build-only export здесь нет.
-    btnParse.click();
-  });
-
+  // FIX26: restore the Professional export click handler lost when Basic was removed.
   btnGenerate.addEventListener('click', function () {
-    var code = codeInput.value;
+    const code = codeInput.value;
     if (!code.trim()) {
-      setStatus('Вставьте код Arduino', true);
+      setStatus('Вставьте код Arduino.', true);
       return;
     }
-    if (!parsedSource || parsedSource !== code) {
-      setStatus('Исходный код изменился или ещё не разобран: нажмите «Парсить код».', true);
+    if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
+      setStatus(remoteXYNotSupported, true);
       return;
     }
-    if (exportMode.value === 'professional') {
-      if (remoteXYMode) {
-        setStatus('RemoteXY в формате Code Professional пока не поддерживается; используйте Code Basic.', true);
-        return;
-      }
+    if (parsedSource !== code) {
+      setStatus('Сначала нажмите «Парсить код» (после изменений тоже).', true);
+      return;
+    }
+    try {
       const check = runChecks(code, state);
       showEsp32Diagnostics(check, code);
-      if (check.errors.length) { setStatus('Исправьте ошибки перед экспортом.', true); return; }
+      if (check.errors.length) {
+        setStatus('Исправьте ошибки перед экспортом: ' + check.errors.join(' '), true);
+        return;
+      }
+      const template = window.ino2ubiProfessionalTemplate;
+      if (!template) throw new Error('Шаблон Code Professional не загружен.');
+      if (!window.ino2ubiProfessional || !window.ino2ubiProfessional.build)
+        throw new Error('Генератор Code Professional не загружен.');
       btnGenerate.disabled = true;
       setStatus('Генерация Code Professional…');
-      Promise.resolve(window.ino2ubiProfessionalTemplate).then(function (template) {
-        if (!template) throw new Error('Шаблон Code Professional не загружен.');
-        const result = window.ino2ubiProfessional.build({
-          template, name:blockName.value.trim()||'Custom Block', description:blockDesc.value,
-          state, source:code, enableInput:enableInput.checked,
-          setupCode: window.extractFunctionBody(code,'setup'),
-          loopCode: window.extractFunctionBody(code,'loop'),
-          additionalHeader:'', additionalHeaderFilename:''
-        });
-        const integrity = compat.inspectGeneratedXml(result.xml);
-        if (!integrity.valid) throw new Error('Повреждены SIXX-ссылки: ' + JSON.stringify(integrity));
-        if (result.hpp) {
-          throw new Error('Блоку требуется собственная библиотека .hpp; прямой экспорт одного .ubi невозможен без неё.');
-        }
-        const blob = new Blob([window.ino2ubiProfessional.utf16le(result.xml.replace(/\r?\n/g,'\r\n'))], {type:'application/octet-stream'});
-        downloadBlob(blob, result.filename + '.ubi');
-        setStatus('Создан Code Professional .ubi.'+
-          (result.dependencies.length?' Используемые внешние библиотеки (проверьте их наличие в FLProg): '+result.dependencies.join(', ')+'.':'')+
-          ' Проверьте импорт и компиляцию в FLProg 9.8.0.');
-      }).catch(function (e) {
-        setStatus('Ошибка Code Professional: '+e.message,true);
-        showEsp32Diagnostics({errors: [e.message],warnings: []},code);
-      }).finally(function () {btnGenerate.disabled=false;});
-      return;
-    }
-    if (remoteXYMode) {
-      try {
-        const aliases = {};
-        Object.entries(state.variables || {}).forEach(function ([key, info]) { aliases[key] = info.alias || key; });
-        const built = window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY_Greenhouse', {
-          aliases, description: blockDesc.value,
-          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
-        });
-        const integrity = compat.inspectGeneratedXml(built.xml);
-        if (!integrity.valid) throw new Error('Повреждены XML-ссылки: ' + JSON.stringify(integrity));
-        const doc = new DOMParser().parseFromString(built.xml, 'application/xml');
-        if (doc.querySelector('parsererror')) throw new Error('Недопустимый XML RemoteXY.');
-        const blob = stringToUtf16LeBlob(built.xml.replace(/\r?\n/g, '\r\n'));
-        downloadBlob(blob, (built.name || 'RemoteXY').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi');
-        setStatus('Экспериментальный RemoteXY .ubi создан; проверьте импорт и компиляцию в FLProg 9.8.0.');
-      } catch (e) {
-        setStatus(e.message, true);
-        showEsp32Diagnostics({errors: [e.message], warnings: []}, code);
-      }
-      return;
-    }
-    const check = runChecks(code, state);
-    showEsp32Diagnostics(check, code);
-    if (check.errors.length) {
-      setStatus('Исправьте перед генерацией: ' + check.errors.join(' '), true);
-      return;
-    }
-    setStatus('Генерация…');
-    try {
-      const aliases = {};
-      Object.entries(state.variables || {}).forEach(function ([name, info]) {
-        if (info.alias && info.alias !== name && (info.role === 'input' || info.role === 'output'))
-          aliases[name] = info.alias;
+      const result = window.ino2ubiProfessional.build({
+        template,
+        name: blockName.value.trim() || 'Custom Block',
+        description: blockDesc.value,
+        state,
+        source: code,
+        enableInput: enableInput.checked,
+        setupCode: window.extractFunctionBody(code, 'setup'),
+        loopCode: window.extractFunctionBody(code, 'loop'),
+        additionalHeader: '', additionalHeaderFilename: ''
       });
-      const setupCode = compat.replaceCodeIdentifiers(window.extractFunctionBody(code, 'setup'), aliases);
-      const loopCode = compat.replaceCodeIdentifiers(window.extractFunctionBody(code, 'loop'), aliases);
-      const functionsForExport = {};
-      Object.entries(state.functions || {}).forEach(function ([key, info]) {
-        functionsForExport[key] = Object.assign({}, info, {
-          body: compat.replaceCodeIdentifiers(info.body || '', aliases)
-        });
-      });
-      var name = blockName.value.trim() || 'Custom Block';
-      var desc = (blockDesc.value || '').trim() || 'Автоматически сгенерированный блок';
-      var xml = window.createUbiXmlSixx(
-        name,
-        desc,
-        state.variables,
-        functionsForExport,
-        state.global_includes,
-        state.defines,
-        state.extra_declarations,
-        state.static_declarations,
-        setupCode,
-        loopCode,
-        enableInput.checked
-      );
-      const integrity = compat.inspectGeneratedXml(xml);
-      if (!integrity.valid) throw new Error('Повреждённые ссылки SIXX: ' + JSON.stringify(integrity));
-      // DOMParser checks nesting and entity escaping in addition to SIXX references.
-      const doc = new DOMParser().parseFromString(xml, 'application/xml');
-      if (doc.querySelector('parsererror')) throw new Error('Файл .ubi содержит недопустимый XML.');
-      const blob = stringToUtf16LeBlob(xml.replace(/\r?\n/g, '\r\n'));
-      const filename = (name || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.ubi';
-      downloadBlob(blob, filename);
-      setStatus('Сохранён .ubi (' + integrity.objects + ' объектов SIXX).' +
-        ' Проверьте импорт и компиляцию в установленном FLProg 9.8.0.');
+      const integrity = compat.inspectGeneratedXml(result.xml);
+      if (!integrity.valid)
+        throw new Error('Повреждены SIXX-ссылки: ' + JSON.stringify(integrity));
+      if (result.hpp)
+        throw new Error('Для блока требуется внешний заголовок .hpp; экспорт одного .ubi невозможен.');
+      const bytes = window.ino2ubiProfessional.utf16le(result.xml.replace(/\r?\n/g, '\r\n'));
+      downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), result.filename + '.ubi');
+      setStatus('Файл ' + result.filename + '.ubi создан.' +
+        (result.dependencies.length ? ' Проверьте локальные заголовки: ' + result.dependencies.join(', ') + '.' : '') +
+        (result.warnings.length ? ' Зависимости: ' + result.warnings.join(' ') : '') +
+        ' Проверьте импорт и компиляцию в FLProg.');
     } catch (e) {
-      showEsp32Diagnostics({ errors: ['Ошибка генерации .ubi: ' + e.message], warnings: [] }, code);
-      setStatus('Ошибка генерации: ' + e.message, true);
+      setStatus('Ошибка Code Professional: ' + e.message, true);
+      showEsp32Diagnostics({ errors: [e.message], warnings: [] }, code);
+    } finally {
+      btnGenerate.disabled = false;
     }
   });
-
-  modalEdit.querySelector('.modal-backdrop').addEventListener('click', function () {
-    modalEdit.hidden = true;
-  });
-
-  var modalHelp = document.getElementById('modalHelp');
-  var btnHelp = document.getElementById('btnHelp');
-  var modalHelpClose = document.getElementById('modalHelpClose');
-  if (btnHelp && modalHelp) {
-    btnHelp.addEventListener('click', function () { modalHelp.hidden = false; });
-    if (modalHelpClose) modalHelpClose.addEventListener('click', function () { modalHelp.hidden = true; });
-    var helpBackdrop = modalHelp.querySelector('.modal-backdrop');
-    if (helpBackdrop) helpBackdrop.addEventListener('click', function () { modalHelp.hidden = true; });
-  }
 
   // Версия для расширения: PWA service worker не регистрируется.
 })();

@@ -145,3 +145,10 @@ body {
 .help-content .full-guide-body h2 { font-size: 1rem; margin: 1.2rem 0 0.5rem; }
 .help-content .full-guide-body li { font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.3rem; }
 .help-content .full-guide-body pre { white-space: pre; max-width: 100%; }
+
+.core-label {align-self:center;font-size:.85rem;white-space:nowrap;}
+#coreVersion {border:1px solid var(--border, #667085);border-radius:6px;padding:8px;background:var(--surface2, #202a39);color:var(--text, #fff);}
+
+/* FIX34: informational notes are visually separate from actionable warnings. */
+.diagnostic-info { opacity: .82; border-left: 3px solid #64748b; }
+.diagnostic-info .diagnostic-message { color: inherit; }
