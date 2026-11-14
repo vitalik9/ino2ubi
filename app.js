@@ -243,6 +243,11 @@
         var reparsedOrder = window.parseArduinoCode(data.code);
         state.global_section_raw = reparsedOrder.global_section_raw || '';
         state.declaration_order = reparsedOrder.declaration_order || [];
+        // A-08: declaration_order holds indices into the extra/static lists. Those lists
+        // have no editable UI, so take them from the current parse of the source; a stale
+        // or hand-edited project list would otherwise swap declarations silently.
+        state.extra_declarations = reparsedOrder.extra_declarations || [];
+        state.static_declarations = reparsedOrder.static_declarations || [];
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;

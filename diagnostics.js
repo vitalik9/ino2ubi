@@ -128,7 +128,7 @@
       advice = 'Проверьте сигнатуру после экспорта в .ubi и передавайте параметры явно.';
     } else if (/^esp_now_(recv|send)_info_t/.test(message)) {
       idx = findByRegex(clean, /\besp_now_(recv|send)_info_t\b/);
-      advice = 'Используйте сигнатуру обратного вызова для ESP32 Core 3.3.11.';
+      advice = 'Сверьте сигнатуру обратного вызова с esp_now.h вашего Core 3.3.11.';
     } else if (/^Обнаружен код ESP8266/.test(message)) {
       idx = findByRegex(code, /ESP8266WiFi\.h|ESP8266WebServer/);
       advice = 'Замените ESP8266 API на соответствующий ESP32 API.';
@@ -141,7 +141,14 @@
     } else if (/^ESP-NOW callback/.test(message)) {
       m = message.match(/^ESP-NOW callback\s+([A-Za-z_]\w*)/);
       if (m) idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\('));
-      advice = 'Используйте сигнатуру void onRecv(const uint8_t* mac, const uint8_t* data, int len).';
+      advice = /отправки/.test(message)
+        ? 'Для Core 3.3.11 сверьте сигнатуру callback отправки с esp_now.h: первый параметр — структура с информацией об отправке, а не MAC-адрес.'
+        : 'Для Core 3.3.11 используйте void onRecv(const esp_now_recv_info_t* info, const uint8_t* data, int len).';
+    } else if ((m = message.match(/^(hallRead|esp_task_wdt_init)\(\):/))) {
+      idx = findByRegex(clean, new RegExp('\\b' + m[1] + '\\s*\\('));
+      advice = m[1] === 'hallRead'
+        ? 'Уберите чтение датчика Холла: в Core 3.x функция отсутствует.'
+        : 'Для Core 3.x передайте указатель на esp_task_wdt_config_t (см. esp_task_wdt.h) вместо (timeout, panic).';
     } else if (/^ledcWrite\(\)/.test(message)) {
       idx = findByRegex(clean, /\bledcWrite\s*\(/);
       advice = 'Для Core 3.3.11 используйте API ledcAttach() и ledcWrite() с номером GPIO; старые ledcSetup()/ledcAttachPin() удалены.';
@@ -153,7 +160,9 @@
       advice = 'Цикл должен завершаться быстро, чтобы продолжилось выполнение остальных блоков.';
     } else if ((m = message.match(/^(?:Сложный )?while\(\) на строке (\d+):/))) {
       const number = Number(m[1]);
-      const lines = code.split(/\r?\n/);
+      // A-10: split on '\n' only (like every other branch) so a '\r' counts as
+      // a character of its line and the cumulative offset matches code.slice().
+      const lines = code.split('\n');
       if (number >= 1 && number <= lines.length) {
         idx = lines.slice(0, number - 1).reduce((n, line) => n + line.length + 1, 0);
         const local = lines[number - 1].search(/\bwhile\s*\(/);
@@ -188,9 +197,18 @@
     } else if (/^При использовании отдельного bufferSize/.test(message)) {
       idx = findByRegex(clean, /\bbufferSize\b|\bBufferSize\b/);
       advice = 'Ограничьте предел фактической длиной массива; если размер всегда 32, используйте [32] и число 32.';
+    } else if ((m = message.match(/^(?:Условная компиляция|Директива) #\w+ на строке (\d+)/))) {
+      // A-04/A-05: new messages carry the exact line number.
+      const lineNumber = Number(m[1]);
+      const sourceLines = code.split('\n');
+      if (lineNumber >= 1 && lineNumber <= sourceLines.length)
+        idx = sourceLines.slice(0, lineNumber - 1).reduce((n, line) => n + line.length + 1, 0);
+      advice = /^Условная/.test(message)
+        ? 'Блок не может воспроизвести #if/#ifdef вне функций: оставьте нужную ветку и удалите директивы условной компиляции.'
+        : 'Директивы вне верхней секции и #undef/#pragma/#error/#line не переносятся в .ubi: удалите их или перенесите #define/#include перед setup().';
     } else if (/^Условная компиляция/.test(message)) {
       idx = findByRegex(code, /^[ \t]*#\s*(?:if|ifdef|ifndef)\b/m);
-      advice = 'Убедитесь, что условные ветки и используемые макросы сохраняются после генерации.';
+      advice = 'Условные директивы внутри функций сохраняются как есть; проверьте результат после импорта.';
     } else if (/^Функциональн(?:ые|ый) макрос/.test(message)) {
       idx = findByRegex(code, /^[ \t]*#\s*define\s+\w+\(/m);
       advice = 'Проверьте, что #define NAME(x) остался без пробела между именем и скобкой; многострочные макросы запрещены.';
@@ -202,12 +220,25 @@
       advice = 'Используйте поддерживаемый тип или переработайте объявление без изменения разрядности данных.';
     } else if (/^Глобальный указатель\/ссылка C\+\+/.test(message)) {
       idx = findByRegex(clean, /\b[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s*[*&]+\s*(?:(?:const|volatile)\s+)?[A-Za-z_]\w*/);
-      advice = 'Глобальные указатели и ссылки пока не изолируются по экземплярам.';
+      advice = 'Это сознательное ограничение: глобальные указатели и ссылки не изолируются по экземплярам блока. Защита сохранена; используйте локальные переменные или API FLProg.';
     } else if (/^Глобальный массив:/.test(message)) {
       idx = findByRegex(clean, /\b[A-Za-z_]\w*\s*\[[^\]\n]*\]\s*(?:=|;|\{)/);
       advice = 'Глобальные массивы пока не имеют гарантированного UUID.';
     } else if (/^Массивы объектов C\+\+/.test(message)) {
-      idx = findByRegex(clean, /\b[A-Za-z_]\w*\s*\[[^\]\n]*\]/);
+      // A-07: point at the object array, not at the first array of any kind.
+      const objectArray = /^[ \t]*(?:(?:const|volatile)\s+)*([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+[A-Za-z_]\w*\s*\[[^\]\n]*\]/gm;
+      let oa;
+      while ((oa = objectArray.exec(clean))) {
+        if (!/^(?:int|long|short|char|bool|boolean|byte|float|double|unsigned|signed|size_t|String|u?int(?:8|16|32|64)_t)$/.test(oa[1])) { idx = oa.index; break; }
+      }
+      advice = 'Для каждого элемента массива объектов нужен собственный UUID; замените массив отдельными объектами с конструктором.';
+    } else if (/^Глобальная static-переменная/.test(message)) {
+      idx = findByRegex(clean, /^[ \t]*static\s+/m);
+      advice = 'Уберите static у глобальной переменной (обычная глобальная получает UUID блока); static внутри функций допустим.';
+    } else if ((m = message.match(/^Объект без аргументов конструктора \(([^)]*)\)/))) {
+      const first = (m[1].match(/^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+([A-Za-z_]\w*)/) || [])[1];
+      if (first) idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(first) + '\\b'));
+      advice = 'Объекту нужны аргументы конструктора (Type name(args);), иначе UUID каждого экземпляра гарантировать нельзя; для классов без аргументов задайте их явно или создавайте объект в setup().';
     } else if ((m=message.match(/^Помеченное объявление ([A-Za-z_]\w*) не распознано/))) {
       idx = findByRegex(clean, new RegExp('\\b'+escapeRegex(m[1])+'\\b'));
       advice = 'Выберите поддерживаемый тип и повторно распарсьте скетч.';

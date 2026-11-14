@@ -192,6 +192,49 @@
     return { errors, warnings };
   }
 
+  // A-04 / A-05: the parser reads directives only from the section before the
+  // first setup()/loop(). A directive anywhere else outside a function body, and
+  // any directive that the generator cannot reproduce, used to be dropped
+  // silently. Block them with an explicit location instead.
+  function checkTopLevelDirectives(code) {
+    const errors = [];
+    const source = String(code || '');
+    const masked = typeof maskNonCode === 'function' ? maskNonCode(source) : source;
+    const lines = masked.split('\n');
+    const reported = new Set();
+    let depth = 0, seenFunction = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const directive = line.match(/^[ \t]*#\s*(\w+)/);
+      if (directive) {
+        const kind = directive[1];
+        if (depth === 0) {
+          const where = 'на строке ' + (i + 1);
+          if (/^(?:if|ifdef|ifndef|else|elif|elifdef|elifndef|endif)$/.test(kind)) {
+            if (!reported.has('conditional'))
+              errors.push('Условная компиляция #' + kind + ' ' + where + ' вне функций не поддерживается: условие будет потеряно, а обе ветки попадут в блок. Оставьте одну ветку без #if/#ifdef или используйте условия только внутри setup()/loop().');
+            reported.add('conditional');
+          } else if (/^(?:undef|error|warning|line)$/.test(kind) || (kind === 'pragma' && !/^[ \t]*#\s*pragma\s+once\b/.test(line))) {
+            if (!reported.has(kind))
+              errors.push('Директива #' + kind + ' ' + where + ' вне функций не поддерживается: она была бы потеряна при экспорте в .ubi. Удалите её или перенесите в обычный C++ внутри функций.');
+            reported.add(kind);
+          } else if (seenFunction && (kind === 'define' || kind === 'include')) {
+            if (!reported.has(kind + '-late'))
+              errors.push('Директива #' + kind + ' ' + where + ' стоит после начала setup()/loop(): она была бы потеряна при экспорте. Перенесите её в начало скетча, перед setup().');
+            reported.add(kind + '-late');
+          }
+        }
+        continue; // directive text never contributes braces
+      }
+      if (!seenFunction && depth === 0 && /\bvoid\s+(?:setup|loop)\s*\(/.test(line)) seenFunction = true;
+      for (const ch of line) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth = Math.max(0, depth - 1);
+      }
+    }
+    return errors;
+  }
+
   function validateConverterInput(code, parsed, enableInput) {
     const safety = checkArrayAndDefineSafety(code, parsed);
     const flow = checkSharedExecutionSafety(code);
@@ -217,7 +260,7 @@
       errors.push('Неподдерживаемый глобальный тип C++: безопасное отображение типа в FLProg не доказано; используйте поддерживаемый тип либо отдельную реализацию.');
     // Pointers, references, multidimensional indirection, pointer qualifiers.
     if (/(?:^|[;{}\n])\s*(?:(?:static|extern|const|volatile|unsigned|signed|struct)\s+)*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*(?:\s*<[^;{}]+>)?(?:\s+[A-Za-z_]\w*)?)\s*[*&]+\s*(?:const\s+|volatile\s+|[*&]\s*)*[A-Za-z_]\w*/m.test(declarations))
-      errors.push('Глобальный указатель/ссылка C++: безопасная генерация и изоляция пока не поддерживаются.');
+      errors.push('Глобальный указатель/ссылка C++: безопасная генерация и изоляция пока не поддерживаются. Это сознательное ограничение: указатель, общий для нескольких экземпляров блока, может привести к конфликту (например, глобальный hw_timer_t* timer). Защита сохранена; вынесите логику в вызовы API FLProg или в локальные переменные функций.');
     // Top-level static, arrays, templates, classes and simple ctor-less objects
     // have no guaranteed per-instance isolation in existing Professional generator.
     if (/(?:^|[;\n])\s*static\s+/m.test(declarations))
@@ -228,6 +271,17 @@
       errors.push('Шаблонный глобальный объект: независимость экземпляров не подтверждена.');
     if (/(?:^|[;\n])\s*(?:const\s+|volatile\s+)*[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*\[[^\]]*\]/m.test(declarations))
       errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
+    // A-03: an array declared inside a declarator list (int a = 1, c[3];) is not
+    // at the start of a statement, so the check above cannot see it. The parser
+    // moves such arrays into static_declarations; block every non-static one here.
+    for (const raw of (fresh.static_declarations || [])) {
+      const d = String(raw).trim();
+      if (/\[[^\]]*\]/.test(d) && !/^static\b/.test(d)) {
+        errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
+        break;
+      }
+    }
+    for (const message of checkTopLevelDirectives(code)) errors.push(message);
     // Nested constructor expressions can be mistaken for a primitive declaration
     // by the lightweight parser (for example: String obj(String(pin));).
     // Refuse the unsafe case instead of silently exporting a wrong variable.
@@ -236,7 +290,8 @@
     const known = new Set(typeof PRIMITIVE_TYPES !== 'undefined' ? PRIMITIVE_TYPES : []);
     for (const declaration of (fresh.extra_declarations || [])) {
       const d=String(declaration).trim();
-      if (/^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*;?$/.test(d) && !known.has(d.split(/\s+/)[0]))
+      // A-02: also catches lists such as `Servo s1, s2;`.
+      if (/^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*\s*;?$/.test(d) && !known.has(d.split(/\s+/)[0]))
         errors.push('Объект без аргументов конструктора ('+d+'): невозможно гарантировать UUID каждого экземпляра.');
     }
     // Guard against the parser silently omitting source declared after setup/loop.
@@ -337,8 +392,10 @@
     if (/\bdelay\s*\(/.test(code)) warnings.push('delay() блокирует выполнение других блоков FLProg.');
     if (/\bfor\s*\(\s*;\s*;\s*\)/.test(maskNonCode(code)))
       warnings.push('Бесконечный цикл может остановить выполнение схемы FLProg.');
-    if (/^\s*#\s*(?:if|ifdef|ifndef|else|elif|endif)\b/m.test(code))
-      warnings.push('Условная компиляция #if/#ifdef требует проверки после импорта.');
+    // Conditionals outside functions are already blocked above; inside function
+    // bodies they are kept verbatim and only need a review.
+    if (/^\s*#\s*(?:if|ifdef|ifndef|else|elif|endif)\b/m.test(code) && !errors.some(m => /^Условная компиляция/.test(m)))
+      warnings.push('Условная компиляция #if/#ifdef внутри функций сохраняется как есть; проверьте результат после импорта.');
     if (/^\s*#define\s+\w+\(/m.test(code))
       warnings.push('Функциональный макрос #define: проверьте сохранение определения и вызовов в итоговом C++ FLProg.');
     return { errors, warnings };

@@ -1,4 +1,4 @@
-/* Preflight for ESP32 Arduino core 2.0.17 (ESP-IDF 4.4.7).
+/* Preflight for ESP32 Arduino Core 3.3.11 (the only target). checkEsp32Core2017 is legacy reference code and is not called by the application.
  * Run on source, before any conversion. Never silently rewrite an API.
  * Static diagnostics are advisory: they do not replace a C++ compilation.
  */
@@ -233,9 +233,40 @@
     for(const call of callArgumentCounts(clean,'timerAlarm'))
       if(call.count!==4) addError('timerAlarm(): для Core 3.3.11 нужны 4 аргумента.');
     if(/^\s*#\s*include\s*[<"]ESP8266WiFi\.h[>"]/m.test(code)||/\bESP8266WebServer\b/.test(clean))
-      addError('Обнаружен код ESP8266: для ESP32 нужны совместимые библиотеки.');
+      addError('Обнаружен код ESP8266: для ESP32 нужны совместимые библиотеки (проверка не учитывает ветки #ifdef/#else — оставьте только код ESP32).');
+    // A-07: message starts with "ledcWrite():" so diagnostics.js can locate the line.
     if(/\bledcWrite\s*\(/.test(clean))
-      addWarning('В Core 3.x ledcWrite() принимает GPIO, а в Core 2.x — канал. Проверьте смысл аргумента.');
+      addWarning('ledcWrite(): в Core 3.x принимает GPIO, а в Core 2.x — канал. Проверьте смысл аргумента.');
+    // A-06: checks that existed only in the Core 2.0.17 branch, adapted to Core 3.3.11.
+    if(/\bWiFi\s*\./.test(clean) && !/^\s*#\s*include\s*[<"]WiFi\.h[>"]/m.test(code))
+      addWarning('В коде есть WiFi.*, но нет явного #include <WiFi.h>.');
+    if(/\besp_now_(?:init|register_recv_cb|register_send_cb|send|add_peer)\s*\(/.test(clean) &&
+        !/^\s*#\s*include\s*[<"]esp_now\.h[>"]/m.test(code))
+      addWarning('Используется ESP-NOW без явного #include <esp_now.h>.');
+    if(/\besp_task_wdt_init\s*\(/.test(clean))
+      addWarning('esp_task_wdt_init(): в Core 3.x принимает указатель на esp_task_wdt_config_t, а не (timeout, panic). Проверьте вызов.');
+    if(/\bhallRead\s*\(/.test(clean))
+      addError('hallRead(): функция удалена в Arduino-ESP32 3.x; встроенный датчик Холла недоступен в Core 3.3.11.');
+    const espNowFunctions=Object.values(parsed && parsed.functions || {}).filter(f=>f && f.name!=='setup' && f.name!=='loop');
+    const callbackOf=(registrar,fnName)=>new RegExp('\\b'+registrar+'\\s*\\(\\s*'+String(fnName||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*\\)').test(clean);
+    if(/\besp_now_register_recv_cb\s*\(/.test(clean)) {
+      const callbacks=espNowFunctions.filter(f=>callbackOf('esp_now_register_recv_cb',f.name));
+      for(const cb of callbacks) {
+        const params=cb.parsed_params||[];
+        if(params.length!==3 || !/\besp_now_recv_info_t\b/.test(params[0] && params[0].type || ''))
+          addError('ESP-NOW callback '+cb.name+' должен принимать (const esp_now_recv_info_t* info, const uint8_t* data, int len) для Core 3.3.11.');
+      }
+      if(!callbacks.length)
+        addWarning('ESP-NOW callback приёма не удалось сопоставить с распознанной функцией; проверьте, что его первый параметр — const esp_now_recv_info_t*.');
+    }
+    if(/\besp_now_register_send_cb\s*\(/.test(clean)) {
+      const callbacks=espNowFunctions.filter(f=>callbackOf('esp_now_register_send_cb',f.name));
+      for(const cb of callbacks) {
+        const first=(cb.parsed_params||[])[0];
+        if(!first || !/\b(?:esp_now_send_info_t|wifi_tx_info_t)\b/.test(first.type||''))
+          addWarning('ESP-NOW callback '+cb.name+' отправки: в Core 3.3.11 (ESP-IDF 5.x) первый параметр — const esp_now_send_info_t*/wifi_tx_info_t*, а не const uint8_t* mac. Сверьте сигнатуру с esp_now.h вашего Core.');
+      }
+    }
     if(/\b(?:xTaskCreatePinnedToCore|attachInterrupt|esp_now_register_recv_cb)\s*\(/.test(clean))
       addWarning('Callbacks и FreeRTOS-задачи требуют проверки потокобезопасности.');
     if(/\b(?:WiFi\.begin|WiFi\.mode|esp_now_init)\s*\(/.test(clean))

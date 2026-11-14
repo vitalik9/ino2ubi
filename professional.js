@@ -63,8 +63,16 @@
   function safeIdentifier(name) {
     return /^[A-Za-z_][A-Za-z_0-9]*$/.test(name);
   }
+  // A-11: transliterate Cyrillic so a block named «Мой датчик» is not exported as «__________.ubi».
+  const CYR = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+  function translit(text) {
+    return String(text).replace(/[А-Яа-яЁё]/g, ch => {
+      const low = CYR[ch.toLowerCase()] || '';
+      return ch === ch.toLowerCase() ? low : low.charAt(0).toUpperCase() + low.slice(1);
+    });
+  }
   function sanitizeName(name) {
-    return String(name || 'Custom_Block').replace(/[^A-Za-z0-9_\-]/g, '_').slice(0,90) || 'Custom_Block';
+    return translit(String(name || 'Custom_Block')).replace(/[^A-Za-z0-9_\-]/g, '_').slice(0,90) || 'Custom_Block';
   }
   function ensureXml(doc) {
     if (!doc || doc.querySelector('parsererror') || !doc.documentElement ||
@@ -414,34 +422,44 @@
     // receive FLProg's per-instance UUID in BOTH their declaration and uses.
     // Only accept a straightforward global `Type name(args);` declaration;
     // never guess inside templates, function prototypes, or arbitrary C++.
-    function constructorObjectName(declaration) {
+    // A-02: returns ALL object names of one declaration. Supported shapes:
+    //   Type a(args);   Type a{args};   Type a = expr;   Type a;
+    //   and comma lists of those (Type a(1), b(2);). Pointers, references,
+    //   arrays and anything else yield [] (such shapes are blocked by
+    //   compat.js diagnostics instead of being exported without UUID).
+    function constructorObjectNames(declaration) {
       const line=String(declaration||'').trim();
-      const match=line.match(/^([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+([A-Za-z_]\w*)\s*\(([^;{}]*)\)\s*;$/);
-      if (!match) return null;
-      const type=match[1], name=match[2], args=match[3].trim();
-      // `void helper(...)` and other function prototypes are not objects.
+      const match=line.match(/^([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+([^;]+);$/);
+      if (!match) return [];
+      const type=match[1];
       // String is a C++ class with real constructors, although it is also a
-      // supported FLProg scalar type. Excluding it leaves global String objects
-      // unsuffixed and causes redefinition with two Professional instances.
-      // Keep ordinary scalar/primitive types excluded.
+      // supported FLProg scalar type; keep it. Other primitives are excluded.
       if ((RECOGNIZED.has(type) && type !== 'String') ||
-          /^(?:void|auto|size_t|const|unsigned|signed)$/.test(type)) return null;
-      // Require actual constructor arguments to distinguish from the common
-      // zero-argument function declaration (`Type foo();`).
-      if (!args) return null;
-      return name;
+          /^(?:void|auto|size_t|const|unsigned|signed|static|extern|typedef|using|struct|class|enum|union|template|return|volatile)$/.test(type)) return [];
+      const parts=typeof splitTopLevel==='function'?splitTopLevel(match[2],','):[match[2]];
+      const names=[];
+      for (const part of parts) {
+        const pm=part.trim().match(/^([A-Za-z_]\w*)\s*(?:(\(([\s\S]*)\))|(\{[\s\S]*\})|(=[\s\S]*))?$/);
+        if (!pm) return [];
+        // `Type foo();` is a function prototype, not an object.
+        if (pm[2] && !String(pm[3]).trim()) return [];
+        names.push(pm[1]);
+      }
+      // A prototype of a helper function must never be tagged as an object.
+      if (names.length===1 && helpers.some(([key,f])=>(f.name||key)===names[0])) return [];
+      return names;
     }
     const constructorObjects=new Set();
     for (const decl of state.extra_declarations||[]) {
       const raw=typeof decl==='string'?decl:(decl.code||decl.text||'');
-      const objectName=constructorObjectName(raw);
-      if (!objectName) continue;
-      if (constructorObjects.has(objectName) || variables[objectName] ||
-          defines.some(d=>d.name===objectName) ||
-          helpers.some(([key,f])=>(f.name||key)===objectName))
-        throw new Error('Дублирование имени объекта библиотеки: '+objectName);
-      constructorObjects.add(objectName);
-      b.addVar(objectName);
+      for (const objectName of constructorObjectNames(raw)) {
+        if (constructorObjects.has(objectName) || variables[objectName] ||
+            defines.some(d=>d.name===objectName) ||
+            helpers.some(([key,f])=>(f.name||key)===objectName))
+          throw new Error('Дублирование имени объекта библиотеки: '+objectName);
+        constructorObjects.add(objectName);
+        b.addVar(objectName);
+      }
     }
     const includesFromSource=externalIncludes(state).map(s=>s.match(/"([^"]+)"/)[1]);
     const providedName=String(options.additionalHeaderFilename||'').trim();
@@ -536,11 +554,33 @@
     // with one extra function-section code part in the MQTT Professional UBI.
     // Removing the separate function-section part tests this hypothesis while
     // retaining full helper bodies and all generated parameter/variable tags.
-    const helperText=internal.map(([fn,f])=>{
+    // A-01: Arduino IDE generates prototypes automatically; the generated
+    // declare section does not. Emit a prototype for every helper before any
+    // definition so forward and mutual references compile. Default arguments
+    // are kept only in the prototype (C++ forbids repeating them).
+    function splitDefaults(paramsText) {
+      const text=String(paramsText||'');
+      if (typeof splitTopLevel!=='function' || typeof findParameterDefault!=='function') return {proto:text,def:text};
+      const protoParts=[], defParts=[];
+      for (const part of splitTopLevel(text,',')) {
+        const pos=findParameterDefault(part);
+        protoParts.push(part.trim());
+        defParts.push(pos===-1?part.trim():part.slice(0,pos).trim());
+      }
+      return {proto:protoParts.join(', '),def:defParts.join(', ')};
+    }
+    const helperSignatures=internal.map(([fn,f])=>{
+      const p=splitDefaults(f.parameters||f.params||'');
+      const head=(f.return_type||f.returnType||'void')+' '+(f.name||fn);
+      return {fn,f,prototype:head+'('+p.proto+');',definition:head+'('+p.def+')'};
+    });
+    const helperPrototypes=helperSignatures.map(s=>s.prototype).join('\n');
+    const helperBodies=helperSignatures.map(({fn,f,definition})=>{
       const excluded=(f.parsed_params||[]).map(p=>p.name);
       const body=window.ino2ubiStringParams.transform(f.body||'',stringParams,excluded,numericParams);
-      return (f.return_type||f.returnType||'void')+' '+(f.name||fn)+'('+(f.parameters||f.params||'')+') {\n'+body+'\n}';
+      return definition+' {\n'+body+'\n}';
     }).join('\n\n');
+    const helperText=[helperPrototypes,helperBodies].filter(Boolean).join('\n\n');
     b.codePart(inst,'declare','stop','Библиотеки, объявления и функции',
       [includes,headerInc,defineLines,globalDecl,helperText].filter(Boolean).join('\n\n'));
     const setup=[...pubsubClientBindings,
@@ -560,8 +600,15 @@
     const used=new Set();
     const map=new Map();
     function freshLogicalId() {
+      // A-12: cryptographically random where available (Math.random is only a fallback).
+      // The numeric range is unchanged: FLProg stores these as SmallInteger logical IDs.
       let id;
-      do { id=String(100000000+Math.floor(Math.random()*150000000)); } while (used.has(id));
+      do {
+        let r;
+        if (root.crypto && root.crypto.getRandomValues) r=root.crypto.getRandomValues(new Uint32Array(1))[0]%150000000;
+        else r=Math.floor(Math.random()*150000000);
+        id=String(100000000+r);
+      } while (used.has(id));
       used.add(id);
       return id;
     }
@@ -698,32 +745,9 @@
     if (!parts) throw new Error('Code Professional: отсутствуют секции C++ кода.');
     return {parts,contacts:ioList.length,objects:ids.size};
   }
-  function crc32(data) {
-    let crc=0xFFFFFFFF;
-    for(const v of data) {
-      crc ^= v;
-      for(let j=0;j<8;j++) crc=(crc>>>1) ^ ((crc&1)?0xEDB88320:0);
-    }
-    return (crc^0xFFFFFFFF)>>>0;
-  }
-  function zipFiles(files) {
-    // Uncompressed ZIP keeps GitHub Pages independent of CDN/third-party libraries.
-    const enc=new TextEncoder(), local=[], central=[];let offset=0;
-    function le(v,n){const b=new Uint8Array(n);for(let j=0;j<n;j++)b[j]=(v>>>(8*j))&255;return b;}
-    function concat(arr){const length=arr.reduce((s,x)=>s+x.length,0);const res=new Uint8Array(length);let o=0;for(const x of arr){res.set(x,o);o+=x.length;}return res;}
-    for(const [file, content] of files){
-      const fname=enc.encode(file), data=content instanceof Uint8Array?content:enc.encode(content),crc=crc32(data);
-      const h=concat([le(0x04034b50,4),le(20,2),le(0x0800,2),le(0,2),le(0,2),le(0,2),le(crc,4),le(data.length,4),le(data.length,4),le(fname.length,2),le(0,2),fname]);
-      local.push(h,data);
-      central.push(concat([le(0x02014b50,4),le(20,2),le(20,2),le(0x0800,2),le(0,2),le(0,2),le(0,2),le(crc,4),le(data.length,4),le(data.length,4),le(fname.length,2),le(0,2),le(0,2),le(0,2),le(0,2),le(0,4),le(offset,4),fname]));
-      offset+=h.length+data.length;
-    }
-    const dir=concat(central), end=concat([le(0x06054b50,4),le(0,2),le(0,2),le(files.length,2),le(files.length,2),le(dir.length,4),le(offset,4),le(0,2)]);
-    return new Blob([...local,dir,end],{type:'application/zip'});
-  }
   function utf16le(s) {
     const v=new Uint8Array(2+s.length*2); v[0]=255;v[1]=254;
     for(let i=0;i<s.length;i++){const n=s.charCodeAt(i);v[2+2*i]=n&255;v[3+2*i]=n>>>8;}return v;
   }
-  root.ino2ubiProfessional={build,zipFiles,utf16le};
+  root.ino2ubiProfessional={build,utf16le}; // A-13: unused crc32/zipFiles removed
 })(window);
