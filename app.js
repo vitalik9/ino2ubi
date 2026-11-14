@@ -306,6 +306,11 @@
 
   btnClear.addEventListener('click', function () {
     codeInput.value = '';
+    fileIno.value = '';
+    blockName.value = '';
+    blockDesc.value = '';
+    enableInput.checked = false;
+    if (remoteXYEepromOffset) remoteXYEepromOffset.value = '0';
     parsedSource = null;
     remoteXYMode = false;
     remoteXYPreview = null;
