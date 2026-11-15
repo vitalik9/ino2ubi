@@ -90,6 +90,24 @@
   const modalEditBody = document.getElementById('modalEditBody');
   const modalSave = document.getElementById('modalSave');
   const modalCancel = document.getElementById('modalCancel');
+  // Справка: управление модальным окном (кнопка, закрытие и Esc).
+  const btnHelp = document.getElementById('btnHelp');
+  const modalHelp = document.getElementById('modalHelp');
+  const modalHelpClose = document.getElementById('modalHelpClose');
+  function closeHelp() {
+    if (modalHelp) modalHelp.hidden = true;
+  }
+  if (btnHelp && modalHelp) {
+    btnHelp.addEventListener('click', function () {
+      modalHelp.hidden = false;
+    });
+    if (modalHelpClose) modalHelpClose.addEventListener('click', closeHelp);
+    const helpBackdrop = modalHelp.querySelector('.modal-backdrop');
+    if (helpBackdrop) helpBackdrop.addEventListener('click', closeHelp);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !modalHelp.hidden) closeHelp();
+    });
+  }
 
   let parsedSource = null;
   let remoteXYMode = false;
