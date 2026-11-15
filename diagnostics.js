@@ -44,6 +44,33 @@
     if (literal) return 'Это числовая константа, не обязательно размер массива. Вместо ' + name + ' используйте ' + raw + ' либо объявите обычную типизированную переменную // variable.';
     return 'Это числовое выражение, не обязательно размер массива. Перенесите вычисление в обычный C++ или типизированную переменную // variable; проверьте тип и приоритет операций.';
   }
+  // Offset of the first character of a 1-based line (0 when out of range).
+  function lineStartOffset(code, lineNumber) {
+    const lines = code.split('\n');
+    if (!(lineNumber >= 1 && lineNumber <= lines.length)) return -1;
+    return lines.slice(0, lineNumber - 1).reduce((n, line) => n + line.length + 1, 0);
+  }
+  const ID_ADVICE = {
+    'CPP-CONDITION': 'Условная компиляция вне функций не сохраняется: оставьте одну ветку без #if/#ifdef.',
+    'CPP-MULTILINE': 'Запишите #define в одну строку: продолжение через \ не переносится.',
+    'CALLBACK-SCOPE': 'Не обращайтесь к контактам и параметрам FLProg из callback: сохраните данные во внутренней переменной и обработайте их в loop().',
+    'INIT-LOOP': 'Перенесите инициализацию в setup() или защитите её флагом состояния.',
+    'NAME-COLLISION': 'Дайте переменной, макросу и функции разные имена.',
+    'NAME-RESERVED': 'Имена с префиксом __ino2ubi_ зарезервированы конвертером: переименуйте идентификатор.',
+    'XML-CHAR': 'Удалите управляющий символ: он недопустим в XML 1.0.',
+    'BLOCKING-DELAY': 'Используйте millis() и автомат состояний вместо длительной delay().',
+    'BLOCKING-IO': 'Вынесите ожидание ввода-вывода из общего loop() или ограничьте тайм-аут.',
+    'RESOURCE-REINIT': 'Инициализируйте оборудование один раз в setup() либо под условием.',
+    'RESOURCE-DUPLICATE': 'Оставьте одну инициализацию ресурса в setup().',
+    'BUSY-WAIT': 'Ограничьте ожидание по времени и обеспечьте выход из while().',
+    'TIMER-WRAP': 'Сравнивайте разность беззнаковых значений: millis() - start >= interval.',
+    'TIMER-EQUALITY': 'Сравнивайте прошедший интервал, а не точное равенство millis().',
+    'TIMER-RESET': 'Храните отметку времени в // variable или static, а не в локальной переменной.',
+    'TIMER-WIDTH': 'Используйте uint32_t или unsigned long для значений millis()/micros().',
+    'GPIO-MODE': 'Проверьте, не заданы ли для одного GPIO разные режимы.',
+    'MULTI-RESOURCE': 'Ресурс существует в одном экземпляре на весь скетч: оставьте владельца инициализации одним блоком или снимите галочку «Использовать блок несколько раз в одном проекте».',
+    'CALLBACK-BLOCK': 'Callback должен быстро возвращать управление: не вызывайте в нём delay() и сетевые операции.'
+  };
   function locate(code, message) {
     const clean = mask(code);
     let m, idx = -1, advice = '';
@@ -197,6 +224,10 @@
     } else if (/^При использовании отдельного bufferSize/.test(message)) {
       idx = findByRegex(clean, /\bbufferSize\b|\bBufferSize\b/);
       advice = 'Ограничьте предел фактической длиной массива; если размер всегда 32, используйте [32] и число 32.';
+    } else if ((m = message.match(/^(?:Проверка преобразования|Риск выполнения) \[([A-Z0-9-]+)\] \(строка (\d+)\)/))) {
+      // Messages of conversion-safety.js and runtime-safety.js carry their own line number.
+      idx = lineStartOffset(code, Number(m[2]));
+      advice = ID_ADVICE[m[1]] || '';
     } else if ((m = message.match(/^(?:Условная компиляция|Директива) #\w+ на строке (\d+)/))) {
       // A-04/A-05: new messages carry the exact line number.
       const lineNumber = Number(m[1]);
@@ -223,7 +254,7 @@
       advice = 'Это сознательное ограничение: глобальные указатели и ссылки не изолируются по экземплярам блока. Защита сохранена; используйте локальные переменные или API FLProg.';
     } else if (/^Глобальный массив:/.test(message)) {
       idx = findByRegex(clean, /\b[A-Za-z_]\w*\s*\[[^\]\n]*\]\s*(?:=|;|\{)/);
-      advice = 'Глобальные массивы пока не имеют гарантированного UUID.';
+      advice = 'Изолируются глобальные массивы встроенных типов (int, float, bool, byte, char, String). Для других типов элементов замените массив отдельными переменными либо снимите галочку «Использовать блок несколько раз в одном проекте».';
     } else if (/^Массивы объектов C\+\+/.test(message)) {
       // A-07: point at the object array, not at the first array of any kind.
       const objectArray = /^[ \t]*(?:(?:const|volatile)\s+)*([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+[A-Za-z_]\w*\s*\[[^\]\n]*\]/gm;
@@ -239,6 +270,10 @@
       const first = (m[1].match(/^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+([A-Za-z_]\w*)/) || [])[1];
       if (first) idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(first) + '\\b'));
       advice = 'Объекту нужны аргументы конструктора (Type name(args);), иначе UUID каждого экземпляра гарантировать нельзя; для классов без аргументов задайте их явно или создавайте объект в setup().';
+    } else if ((m = message.match(/^(?:Параметр|Некорректное [^:]*параметра) ([A-Za-z_]\w*)\b/))) {
+      // Default-value problems of a // par variable or #define: point at its declaration.
+      idx = findByRegex(code, new RegExp('^[ \\t]*(?:#\\s*define\\s+' + escapeRegex(m[1]) + '\\b|[^\\n/]*\\b' + escapeRegex(m[1]) + '\\b\\s*(?:=|;))', 'm'));
+      advice = 'Укажите допустимое значение по умолчанию для типа параметра (bool: true/false/0/1; целые — литерал в пределах типа).';
     } else if ((m=message.match(/^Помеченное объявление ([A-Za-z_]\w*) не распознано/))) {
       idx = findByRegex(clean, new RegExp('\\b'+escapeRegex(m[1])+'\\b'));
       advice = 'Выберите поддерживаемый тип и повторно распарсьте скетч.';
@@ -279,5 +314,51 @@
     }
     return issues;
   }
-  root.ino2ubiDiagnostics = { enrich, locate };
+
+  // Presentation filter for the UI. It never mutates `issues` (the analyzers' full
+  // report stays intact) and hides only items that another shown item already
+  // explains: a generic BLOCKING-IO for a call that has its own «Сетевой вызов
+  // X.m()» warning, and the «Несколько потенциально блокирующих…» summary when
+  // every counted call already has such a warning.
+  const BLOCKING_CALL = /\b(?:pulseIn|pulseInLong|readStringUntil|readBytesUntil|waitForConnectResult)\s*\(|\b([A-Za-z_]\w*)\s*(?:\.|->)\s*(GET|POST|PUT|connect|readString|readStringUntil|readBytesUntil|waitForConnectResult)\s*\(/g;
+  function forDisplay(source, issues) {
+    const code = String(source || '');
+    const list = Array.isArray(issues) ? issues : [];
+    const clean = mask(code).split('\n');
+    const concrete = new Map(); // line -> Set("receiver.method")
+    const concreteLines = [];
+    for (const issue of list) {
+      const m = issue.severity === 'warning' && /^Сетевой вызов ([A-Za-z_]\w*)\.([A-Za-z_]\w*)\(\) на строке (\d+):/.exec(issue.message);
+      if (!m) continue;
+      const line = Number(m[3]);
+      if (!concrete.has(line)) concrete.set(line, new Set());
+      concrete.get(line).add(m[1] + '.' + m[2]);
+      concreteLines.push(line);
+    }
+    return list.filter(issue => {
+      if (issue.severity !== 'warning') return true;
+      const generic = /^Риск выполнения \[BLOCKING-IO\] \(строка (\d+)\)/.exec(issue.message);
+      if (generic) {
+        const line = Number(generic[1]);
+        const covered = concrete.get(line);
+        if (!covered) return true;
+        const text = clean[line - 1] || '';
+        BLOCKING_CALL.lastIndex = 0;
+        let call, any = false;
+        while ((call = BLOCKING_CALL.exec(text))) {
+          any = true;
+          // A free function (pulseIn…) or an uncovered member call keeps the generic warning visible.
+          if (!call[1] || !covered.has(call[1] + '.' + call[2])) return true;
+        }
+        return !any; // unrecognised pattern: do not hide anything
+      }
+      const summary = /^Несколько потенциально блокирующих сетевых вызовов в loop\(\) \(начиная со строки (\d+)\): обнаружено (\d+) операц/.exec(issue.message);
+      if (summary) {
+        const from = Number(summary[1]), count = Number(summary[2]);
+        return concreteLines.filter(line => line >= from).length < count;
+      }
+      return true;
+    });
+  }
+  root.ino2ubiDiagnostics = { enrich, locate, forDisplay };
 })(typeof window !== 'undefined' ? window : globalThis);

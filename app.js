@@ -55,6 +55,7 @@
     return clean.slice(0, 24).replace(/\s+\S*$/, '').trim() || clean.slice(0, 24);
   }
   const enableInput = document.getElementById('enableInput');
+  const allowMultipleInstances = document.getElementById('allowMultipleInstances');
   // Единственный формат экспорта — Code Professional.
   const formatHelp = document.getElementById('formatHelp');
   const remoteXYNotSupported = 'RemoteXY пока не поддерживается в Code Professional. Экспорт отключён.';
@@ -89,6 +90,24 @@
   const modalEditBody = document.getElementById('modalEditBody');
   const modalSave = document.getElementById('modalSave');
   const modalCancel = document.getElementById('modalCancel');
+  // Справка: управление модальным окном (кнопка, закрытие и Esc).
+  const btnHelp = document.getElementById('btnHelp');
+  const modalHelp = document.getElementById('modalHelp');
+  const modalHelpClose = document.getElementById('modalHelpClose');
+  function closeHelp() {
+    if (modalHelp) modalHelp.hidden = true;
+  }
+  if (btnHelp && modalHelp) {
+    btnHelp.addEventListener('click', function () {
+      modalHelp.hidden = false;
+    });
+    if (modalHelpClose) modalHelpClose.addEventListener('click', closeHelp);
+    const helpBackdrop = modalHelp.querySelector('.modal-backdrop');
+    if (helpBackdrop) helpBackdrop.addEventListener('click', closeHelp);
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !modalHelp.hidden) closeHelp();
+    });
+  }
 
   let parsedSource = null;
   let remoteXYMode = false;
@@ -112,7 +131,7 @@
 
   // All checks are run on «Парсить код», manual check and before export.
   function runChecks(code, parsed) {
-    const converter = compat.validateConverterInput(code, parsed, enableInput.checked);
+    const converter = compat.validateConverterInput(code, parsed, enableInput.checked, allowMultipleInstances.checked);
     const board = esp32.checkEsp32Core(code, parsed, CORE_VERSION);
     const api = window.ino2ubiFlprogApiAudit ? window.ino2ubiFlprogApiAudit.analyze(code) : {errors:[],warnings:[],infos:[]};
     const headers = window.ino2ubiLibraryAudit ? window.ino2ubiLibraryAudit.analyze((parsed && parsed.global_includes) || []) : {warnings:[],infos:[]};
@@ -125,12 +144,15 @@
 
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
-    const issues = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [], infos: result.infos || [] });
+    const enriched = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [], infos: result.infos || [] });
+    // forDisplay only hides duplicates already explained by a more specific item; counts match the cards shown.
+    const issues = window.ino2ubiDiagnostics.forDisplay(code, enriched);
+    const count = severity => issues.filter(item => item.severity === severity).length;
     diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
     heading.textContent = 'Проверка ino2ubi / ESP32 Core ' + CORE_VERSION + ': ' +
-      result.errors.length + ' ошибок, ' + (result.warnings || []).length + ' предупреждений' +
-      ((result.infos || []).length ? ', ' + result.infos.length + ' информационных сообщений' : '');
+      count('error') + ' ошибок, ' + count('warning') + ' предупреждений' +
+      (count('info') ? ', ' + count('info') + ' информационных сообщений' : '');
     diagnosticsEl.appendChild(heading);
     if (!issues.length) {
       const ok = document.createElement('p');
@@ -248,9 +270,11 @@
         // or hand-edited project list would otherwise swap declarations silently.
         state.extra_declarations = reparsedOrder.extra_declarations || [];
         state.static_declarations = reparsedOrder.static_declarations || [];
-        blockName.value = data.settings.blockName || 'Custom Block';
-        blockDesc.value = data.settings.blockDescription || '';
-        enableInput.checked = !!data.settings.enableInput;
+        const restored = compat.restoreSettings(data.settings);
+        blockName.value = restored.blockName || 'Custom Block';
+        blockDesc.value = restored.blockDescription;
+        enableInput.checked = restored.enableInput;
+        allowMultipleInstances.checked = restored.allowMultipleInstances;
         // Старые проекты открываются, но проверяются только под Core 3.3.11.
         parsedSource = data.code;
         if (/\bRemoteXY_CONF_PROGMEM\b/.test(data.code)) {
@@ -310,6 +334,7 @@
     blockName.value = '';
     blockDesc.value = '';
     enableInput.checked = false;
+    allowMultipleInstances.checked = false;
     if (remoteXYEepromOffset) remoteXYEepromOffset.value = '0';
     parsedSource = null;
     remoteXYMode = false;
@@ -339,7 +364,7 @@
       return;
     }
     const project = compat.makeProject(codeInput.value, state, {
-      blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked,
+      blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked, allowMultipleInstances: allowMultipleInstances.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
       exportMode: 'professional', targetProfile: 'esp32-arduino-' + CORE_VERSION
     });
@@ -560,6 +585,25 @@
   }
 
 
+  // The En checkbox changes which names are reserved and what is exported: re-run the checks at once.
+  enableInput.addEventListener('change', function () {
+    if (parsedSource === codeInput.value && codeInput.value.trim() && !remoteXYMode) {
+      const result = runChecks(codeInput.value, state);
+      showEsp32Diagnostics(result, codeInput.value);
+      setStatus((enableInput.checked ? 'Вход En включён. ' : 'Вход En отключён. ') + 'Ошибок: ' + result.errors.length, !!result.errors.length);
+    }
+  });
+
+  allowMultipleInstances.addEventListener('change', function () {
+    if (parsedSource === codeInput.value && codeInput.value.trim() && !remoteXYMode) {
+      const result = runChecks(codeInput.value, state);
+      showEsp32Diagnostics(result, codeInput.value);
+      setStatus(allowMultipleInstances.checked ?
+        'Режим: несколько экземпляров. Ошибок: ' + result.errors.length :
+        'Режим: один экземпляр. Ошибок: ' + result.errors.length, !!result.errors.length);
+    }
+  });
+
   // FIX26: restore the Professional export click handler lost when Basic was removed.
   btnGenerate.addEventListener('click', function () {
     const code = codeInput.value;
@@ -595,6 +639,7 @@
         state,
         source: code,
         enableInput: enableInput.checked,
+        allowMultipleInstances: allowMultipleInstances.checked,
         setupCode: window.extractFunctionBody(code, 'setup'),
         loopCode: window.extractFunctionBody(code, 'loop'),
         additionalHeader: '', additionalHeaderFilename: ''

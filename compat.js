@@ -39,6 +39,18 @@
     return { kind: 'code', code: text, name: name.replace(/\.(ino|txt|cpp|c|hpp|h)$/i, '') };
   }
 
+  // Single place that interprets saved settings (used by the UI when a project is opened).
+  // A project saved before the multi-instance option existed has no field: it means "unchecked" (single instance).
+  function restoreSettings(settings) {
+    const s = settings || {};
+    return {
+      blockName: String(s.blockName || ''),
+      blockDescription: String(s.blockDescription || ''),
+      enableInput: s.enableInput === true,
+      allowMultipleInstances: s.allowMultipleInstances === true
+    };
+  }
+
   function makeProject(code, parsed, settings) {
     return {
       format: 'ino2ubi-project-v1',
@@ -47,7 +59,7 @@
       parsed: JSON.parse(JSON.stringify(parsed)),
       settings: { blockName: String(settings.blockName || ''),
         blockDescription: String(settings.blockDescription || ''),
-        enableInput: !!settings.enableInput, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-3.3.11' }
+        enableInput: !!settings.enableInput, allowMultipleInstances: settings.allowMultipleInstances === true, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-3.3.11' }
     };
   }
 
@@ -212,15 +224,15 @@
           const where = 'на строке ' + (i + 1);
           if (/^(?:if|ifdef|ifndef|else|elif|elifdef|elifndef|endif)$/.test(kind)) {
             if (!reported.has('conditional'))
-              errors.push('Условная компиляция #' + kind + ' ' + where + ' вне функций не поддерживается: условие будет потеряно, а обе ветки попадут в блок. Оставьте одну ветку без #if/#ifdef или используйте условия только внутри setup()/loop().');
+              errors.push('Условная компиляция #' + kind + ' ' + where + ' вне функций не поддерживается [CPP-CONDITION]: условие будет потеряно, а обе ветки попадут в блок. Оставьте одну ветку без #if/#ifdef или используйте условия только внутри setup()/loop().');
             reported.add('conditional');
-          } else if (/^(?:undef|error|warning|line)$/.test(kind) || (kind === 'pragma' && !/^[ \t]*#\s*pragma\s+once\b/.test(line))) {
+          } else if (/^(?:undef|error|warning|line|include_next)$/.test(kind) || (kind === 'pragma' && !/^[ \t]*#\s*pragma\s+once\b/.test(line))) {
             if (!reported.has(kind))
-              errors.push('Директива #' + kind + ' ' + where + ' вне функций не поддерживается: она была бы потеряна при экспорте в .ubi. Удалите её или перенесите в обычный C++ внутри функций.');
+              errors.push('Директива #' + kind + ' ' + where + ' вне функций не поддерживается [CPP-DIRECTIVE]: она была бы потеряна при экспорте в .ubi. Удалите её или перенесите в обычный C++ внутри функций.');
             reported.add(kind);
           } else if (seenFunction && (kind === 'define' || kind === 'include')) {
             if (!reported.has(kind + '-late'))
-              errors.push('Директива #' + kind + ' ' + where + ' стоит после начала setup()/loop(): она была бы потеряна при экспорте. Перенесите её в начало скетча, перед setup().');
+              errors.push('Директива #' + kind + ' ' + where + ' стоит после начала setup()/loop() [CPP-DIRECTIVE]: она была бы потеряна при экспорте. Перенесите её в начало скетча, перед setup().');
             reported.add(kind + '-late');
           }
         }
@@ -235,7 +247,15 @@
     return errors;
   }
 
-  function validateConverterInput(code, parsed, enableInput) {
+  // Name of a global array from a parser declaration such as `const int values[10] = {0};`.
+  const PRIMITIVE_ARRAY_ELEMENTS = /^(?:int|long|short|char|bool|boolean|byte|float|double|String|u?int(?:8|16|32)_t)$/;
+  function arrayDeclName(decl) {
+    const head = String(decl).split('=')[0];
+    const m = head.match(/([A-Za-z_]\w*)\s*\[/);
+    return m ? m[1] : null;
+  }
+
+  function validateConverterInput(code, parsed, enableInput, allowMultipleInstances = false) {
     const safety = checkArrayAndDefineSafety(code, parsed);
     const flow = checkSharedExecutionSafety(code);
     const loops = checkWhileSafety(code);
@@ -254,6 +274,7 @@
           cleanGlobals.slice(helper.start,end).replace(/[^\n]/g,' ') + cleanGlobals.slice(end);
       }
     }
+    const known = new Set(typeof PRIMITIVE_TYPES !== 'undefined' ? PRIMITIVE_TYPES : []);
     const declarations = cleanGlobals.replace(/^[ \t]*#(?:include|define|pragma)[^\n]*/gm, '');
     // 64-bit and uncommon primitive types must never be silently mapped to 32-bit.
     if (/\b(?:long\s+long|(?:u?int64_t)|unsigned\s+(?:int|char|short)|signed\s+char|int8_t|size_t)\s+[A-Za-z_*&]/.test(declarations))
@@ -263,22 +284,50 @@
       errors.push('Глобальный указатель/ссылка C++: безопасная генерация и изоляция пока не поддерживаются. Это сознательное ограничение: указатель, общий для нескольких экземпляров блока, может привести к конфликту (например, глобальный hw_timer_t* timer). Защита сохранена; вынесите логику в вызовы API FLProg или в локальные переменные функций.');
     // Top-level static, arrays, templates, classes and simple ctor-less objects
     // have no guaranteed per-instance isolation in existing Professional generator.
-    if (/(?:^|[;\n])\s*static\s+/m.test(declarations))
+    if (allowMultipleInstances && /(?:^|[;\n])\s*static\s+/m.test(declarations))
       errors.push('Глобальная static-переменная: независимость экземпляров не обеспечена.');
     if (/\b(?:enum|struct|class|union)\s+[A-Za-z_]\w*\s*[{;:]/.test(declarations))
       errors.push('Глобальные enum/struct/class/union требуют отдельного безопасного преобразования.');
-    if (/\b(?:std::)?[A-Za-z_]\w*\s*<[^;\n]+>\s+[A-Za-z_]\w*\s*[;=({]/.test(declarations))
-      errors.push('Шаблонный глобальный объект: независимость экземпляров не подтверждена.');
-    if (/(?:^|[;\n])\s*(?:const\s+|volatile\s+)*[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*\[[^\]]*\]/m.test(declarations))
-      errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
+    // Template objects reach the declare section untagged: harmless for one instance only.
+    if (allowMultipleInstances && /\b(?:std::)?[A-Za-z_]\w*\s*<[^;\n]+>\s+[A-Za-z_]\w*\s*[;=({]/.test(declarations))
+      errors.push('Шаблонный глобальный объект: независимость экземпляров не подтверждена. Для режима «один экземпляр» снимите галочку «Использовать блок несколько раз в одном проекте».');
+    // Global arrays of FLProg primitive types (int/float/bool/...) are isolated per instance by the
+    // Professional generator (name_<UUID>). Arrays of any other element type (objects, templates,
+    // pointers) are still refused: their element constructors/names cannot be isolated safely.
+    if (allowMultipleInstances) {
+      const arrayDecl = /(?:^|[;\n])\s*(?:const\s+|volatile\s+)*([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+[A-Za-z_]\w*\s*\[[^\]]*\]/gm;
+      let am;
+      while ((am = arrayDecl.exec(declarations))) {
+        if (!PRIMITIVE_ARRAY_ELEMENTS.test(am[1]) && !known.has(am[1])) {
+          errors.push('Глобальный массив: тип элементов «' + am[1] + '» не поддерживается (изолируются только массивы int/float/bool/byte/char/String и т.п.).');
+          break;
+        }
+      }
+    }
     // A-03: an array declared inside a declarator list (int a = 1, c[3];) is not
     // at the start of a statement, so the check above cannot see it. The parser
     // moves such arrays into static_declarations; block every non-static one here.
+    // Arrays found by the parser are all primitive-typed (see parser.js). Check their names:
+    // the per-instance suffix is added to the name, so it must be unique and not shared with
+    // another global entity of the same block.
+    const arrayNames = [];
     for (const raw of (fresh.static_declarations || [])) {
       const d = String(raw).trim();
-      if (/\[[^\]]*\]/.test(d) && !/^static\b/.test(d)) {
-        errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
-        break;
+      if (!/\[[^\]]*\]/.test(d) || /^static\b/.test(d)) continue;
+      const nm = arrayDeclName(d);
+      if (nm) arrayNames.push(nm);
+    }
+    {
+      const seen = new Set();
+      const others = new Set([
+        ...Object.keys(fresh.variables || {}),
+        ...(fresh.defines || []).map(x => x.name),
+        ...Object.entries(fresh.functions || {}).filter(([k]) => k !== 'setup' && k !== 'loop').map(([k, f]) => f.name || k)
+      ]);
+      for (const nm of arrayNames) {
+        if (seen.has(nm)) errors.push('Конфликт имени массива ' + nm + ': массив объявлен повторно.');
+        else if (others.has(nm)) errors.push('Конфликт имени массива ' + nm + ': то же имя используется у переменной, #define или функции блока.');
+        seen.add(nm);
       }
     }
     for (const message of checkTopLevelDirectives(code)) errors.push(message);
@@ -287,12 +336,14 @@
     // Refuse the unsafe case instead of silently exporting a wrong variable.
     if (/\bString\s+[A-Za-z_]\w*\s*\(\s*String\s*\(/.test(declarations))
       errors.push('Вложенный конструктор String не поддерживается надёжно: экспорт остановлен, чтобы не потерять объявление объекта.');
-    const known = new Set(typeof PRIMITIVE_TYPES !== 'undefined' ? PRIMITIVE_TYPES : []);
     for (const declaration of (fresh.extra_declarations || [])) {
       const d=String(declaration).trim();
       // A-02: also catches lists such as `Servo s1, s2;`.
-      if (/^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*\s*;?$/.test(d) && !known.has(d.split(/\s+/)[0]))
-        errors.push('Объект без аргументов конструктора ('+d+'): невозможно гарантировать UUID каждого экземпляра.');
+      if (allowMultipleInstances && /^[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*\s*;?$/.test(d) && !known.has(d.split(/\s+/)[0]))
+        errors.push('Объект без аргументов конструктора ('+d+'): невозможно гарантировать UUID каждого экземпляра. Задайте аргументы конструктора либо снимите галочку «Использовать блок несколько раз в одном проекте».');
+      // constexpr/inline/thread_local variables are copied verbatim (no UUID): two instances would redefine them.
+      if (allowMultipleInstances && /^(?:constexpr|inline|thread_local)\b/.test(d))
+        errors.push('Глобальное объявление «'+d.replace(/\s+/g,' ').slice(0,60)+'» не получит UUID экземпляра: при нескольких экземплярах будет переопределено. Используйте обычную глобальную переменную (const/volatile допустимы) либо снимите галочку «Использовать блок несколько раз в одном проекте».');
     }
     // Guard against the parser silently omitting source declared after setup/loop.
     const structural = typeof maskNonCode === 'function' ? maskNonCode(String(code)) : String(code);
@@ -323,10 +374,17 @@
     }
     // Early detection of unsupported arbitrary globals without preventing include directives.
     const full = String(code || '');
-    if (/^\s*#define[^\n]*\\\s*$/m.test(full))
+    // CPP-MULTILINE is reported with its line by conversion-safety.js; keep a fallback if it is absent.
+    if (!root.ino2ubiConversionSafety && /^\s*#define[^\n]*\\\s*$/m.test(full))
       errors.push('Многострочный #define с продолжением строки пока не поддерживается безопасно.');
     if (/\b(?:WiFi|Wire|Serial|Serial1|Serial2)\s*\.\s*begin\s*\(/.test(structural))
       warnings.push('Общий аппаратный ресурс: убедитесь, что Wi-Fi, I2C или UART инициализируется единственным владельцем.');
+    // Every instance runs its own setup(): an exclusive resource would be initialised once per instance.
+    if (allowMultipleInstances && root.ino2ubiConversionSafety && root.ino2ubiConversionSafety.exclusiveResources) {
+      for (const hit of root.ino2ubiConversionSafety.exclusiveResources(code))
+        warnings.push('Риск выполнения [MULTI-RESOURCE] (строка ' + hit.line + '): блок использует ' + hit.what + '; при нескольких экземплярах инициализация/регистрация повторится в каждом экземпляре. ' +
+          hit.advice + ' Либо снимите галочку «Использовать блок несколько раз в одном проекте».');
+    }
     // An unrecognized annotated input/output/parameter must never disappear.
     for (const line of globals.split('\n')) {
       if (!/\/\/\s*(?:in|out|par|input|output|parameter)(?=\s*(?::|$))/i.test(line)) continue;
@@ -361,7 +419,7 @@
     const objectArray = /^\s*(?:const\s+|volatile\s+)*([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s+[A-Za-z_]\w*\s*\[[^\]\n]*\]/gm;
     let arrayMatch;
     while ((arrayMatch=objectArray.exec(declarations))) {
-      if (!known.has(arrayMatch[1]) && !/^(?:int|long|short|char|bool|byte|float|double|unsigned|signed|size_t|u?int(?:8|16|32|64)_t)$/.test(arrayMatch[1])) {
+      if (allowMultipleInstances && !known.has(arrayMatch[1]) && !/^(?:int|long|short|char|bool|byte|float|double|unsigned|signed|size_t|u?int(?:8|16|32|64)_t)$/.test(arrayMatch[1])) {
         warnings.push('Массивы объектов C++ требуют ручной проверки нескольких экземпляров: имена не всегда получают UUID.');
         break;
       }
@@ -379,6 +437,27 @@
       if (val.role !== 'parameter' && val.alias !== name &&
           !/^[A-Za-z_][A-Za-z_0-9]*$/.test(val.alias || ''))
         errors.push('Псевдоним для ' + name + ' должен быть допустимым C++ идентификатором.');
+    }
+    if (enableInput) {
+      const taken = [];
+      if (vars.En && vars.En.role !== 'input') taken.push('переменная/параметр En');
+      if ((parsed.defines || []).some(d => d.name === 'En')) taken.push('#define En');
+      if (Object.entries(parsed.functions || {}).some(([key, f]) => (f.name || key) === 'En')) taken.push('функция En');
+      if ((fresh.extra_declarations || []).some(d => /(?:^|[\s*&,])En\s*(?:[;=({,\[]|$)/.test(String(d)))) taken.push('глобальный объект En');
+      if ((fresh.static_declarations || []).some(d => /\bEn\s*(?:[;=\[,])/.test(String(d)))) taken.push('глобальный массив/static En');
+      if (pins.some(([n, v]) => v.role !== 'parameter' && n !== 'En' && (v.alias || n) === 'En')) taken.push('контакт с псевдонимом En');
+      if (taken.length)
+        errors.push('Имя En занято (' + taken.join(', ') + '): автоматический вход En создать нельзя. Переименуйте идентификатор в коде или отключите галочку En.');
+    }
+    // Parameter defaults are validated by the generator at export time; report the same problems now,
+    // while the user can still fix the sketch, instead of failing only when «Создать .ubi» is pressed.
+    if (root.ino2ubiProfessional && root.ino2ubiProfessional.validateParameterDefault) {
+      const checkDefault = (name, info) => {
+        try { root.ino2ubiProfessional.validateParameterDefault(name, info); }
+        catch (error) { errors.push(String(error.message)); }
+      };
+      for (const [name, info] of Object.entries(fresh.variables || {})) if (info.role === 'parameter') checkDefault(name, info);
+      for (const d of fresh.defines || []) if (d.role === 'parameter') checkDefault(d.name, { type: d.type || 'String', default: d.value });
     }
     const aliases = pins.filter(([, v]) => v.role !== 'parameter').map(([name,v]) => v.alias || name);
     if (new Set(aliases).size !== aliases.length) errors.push('Повторяются названия входов или выходов.');
@@ -398,6 +477,22 @@
       warnings.push('Условная компиляция #if/#ifdef внутри функций сохраняется как есть; проверьте результат после импорта.');
     if (/^\s*#define\s+\w+\(/m.test(code))
       warnings.push('Функциональный макрос #define: проверьте сохранение определения и вызовов в итоговом C++ FLProg.');
+    // conversion-safety.js / runtime-safety.js produce ID-tagged findings with line numbers.
+    // Checks relaxed on purpose for Code Professional are skipped here:
+    //  - CPP-CONDITION: placement of #if/#ifdef is handled above (line-aware, tagged);
+    //  - CPP-MACRO, CPP-DEFAULT, CPP-FUNCTION, CPP-ARGUMENT: the Professional generator keeps
+    //    one-line function-like macros verbatim (C4), default arguments in prototypes (A-01),
+    //    function-pointer parameters verbatim, and the parser names unnamed arguments;
+    //  - GLOBAL-ORDER: the original declaration order is preserved by declaration_order (H3).
+    if (root.ino2ubiConversionSafety) {
+      const skip = new Set(['CPP-CONDITION', 'CPP-MACRO', 'CPP-DEFAULT', 'CPP-FUNCTION', 'CPP-ARGUMENT', 'GLOBAL-ORDER']);
+      for (const issue of root.ino2ubiConversionSafety.inspect(code, fresh))
+        if (!skip.has(issue.id) && !errors.includes(issue.message)) errors.push(issue.message);
+    }
+    if (root.ino2ubiRuntimeSafety) {
+      for (const message of root.ino2ubiRuntimeSafety.inspect(code, fresh, { board: 'esp32' }).warnings)
+        if (!warnings.includes(message)) warnings.push(message);
+    }
     return { errors, warnings };
   }
 
@@ -428,6 +523,6 @@
     return result;
   }
 
-  root.ino2ubiCompat = { readText, openSourceFile, makeProject,
+  root.ino2ubiCompat = { readText, openSourceFile, makeProject, restoreSettings,
     inspectGeneratedXml, validateConverterInput, checkArrayAndDefineSafety, checkSharedExecutionSafety, checkWhileSafety, replaceCodeIdentifiers };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 r=Path(__file__).resolve().parents[1]
@@ -8,7 +9,7 @@ with sync_playwright() as p:
  errors=[]
  page.on('pageerror',lambda e:errors.append(str(e)))
  html=(r/'index.html').read_text()
- html=html[:html.index('<script src="constants.js?')]+'</body></html>'
+ html=html[:re.search(r'<script\b',html).start()]+'</body></html>'
  page.set_content(html)
  scripts=['constants.js','parser.js','string-params.js','number-literals.js','ble-support.js','basic-instance.js','generator.js','professional.js','professional-template-data.js','conversion-safety.js','runtime-safety.js','compat.js','esp32.js','avr.js','diagnostics.js','remotexy.js','roundtrip.js','app.js']
  for script in scripts:page.add_script_tag(content=(r/script).read_text())

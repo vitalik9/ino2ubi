@@ -152,3 +152,16 @@ body {
 /* FIX34: informational notes are visually separate from actionable warnings. */
 .diagnostic-info { opacity: .82; border-left: 3px solid #64748b; }
 .diagnostic-info .diagnostic-message { color: inherit; }
+
+/* Complete INO2UBI v7 AI instruction inside the existing Help modal. */
+.help-content .ai-guide-v7 .ai-guide-source {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-family: inherit;
+  font-size: 0.87rem;
+  line-height: 1.6;
+  max-width: 100%;
+  padding: 0.8rem;
+}
+.help-content .ai-guide-v7 a { color: var(--accent, #6aa9ff); text-decoration: underline; }

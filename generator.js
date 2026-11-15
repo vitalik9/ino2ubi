@@ -107,6 +107,23 @@ function createUbiXmlSixx(
   const numericParams = window.ino2ubiStringParams.collectNumeric(variables, defines);
   setupCode = window.ino2ubiStringParams.transform(setupCode, stringParams, [], numericParams);
   loopCode = window.ino2ubiStringParams.transform(loopCode, stringParams, [], numericParams);
+  // Multi-instance Code Basic: helpers become scoped lambdas and objects become scoped locals, so two
+  // instances cannot collide in FLProg's single generated sketch. (basic-instance.js fails closed on
+  // anything it cannot isolate.) Helper bodies get the same parameter transforms as emitted functions.
+  if (options.singleInstance === false && window.ino2ubiBasicInstance) {
+    const transformed = {};
+    Object.entries(functions || {}).forEach(([key, info]) => {
+      const excluded = (info.parsed_params || []).map(p => p.name);
+      transformed[key] = Object.assign({}, info, {
+        body: window.ino2ubiStringParams.transform(info.body || '', stringParams, excluded, numericParams)
+      });
+    });
+    const prepared = window.ino2ubiBasicInstance.prepare(transformed, extraDeclarations, setupCode, loopCode, { singleInstance: false });
+    setupCode = prepared.setup;
+    loopCode = prepared.loop;
+    functions = prepared.functions;
+    extraDeclarations = prepared.extraDeclarations;
+  }
   setupCode = setupCode.split('\n').map(l => l.trimEnd()).join('\n');
   loopCode = loopCode.split('\n').map(l => l.trimEnd()).join('\n');
   if (enableInput) loopCode = 'if(En)\n{\n' + loopCode + '\n}';

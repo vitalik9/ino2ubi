@@ -1,3 +1,4 @@
+import re
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 r=Path(__file__).resolve().parents[1]
@@ -9,7 +10,7 @@ with sync_playwright() as p:
  page.on('pageerror',lambda e:exceptions.append(str(e)))
  html=(r/'index.html').read_text(encoding='utf8')
  # Static page with scripts injected from disk to avoid blocked file:// navigation
- html=html[:html.index('<script src="constants.js?')] + '</body></html>'
+ html=html[:re.search(r'<script\b',html).start()] + '</body></html>'
  page.set_content(html)
  for f in files:page.add_script_tag(content=(r/f).read_text(encoding='utf8'))
  print('loaded',page.evaluate('typeof window.ino2ubiRoundtrip'),exceptions[:2])

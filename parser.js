@@ -435,14 +435,25 @@ function parseGlobalSection(globalSection, functions) {
     else if (/\/\s*(?:par|parameter)(?=\s*(?::|$))/i.test(lineText)) role = 'parameter';
 
     const qualifiers = stmt.match(/^\s*((?:(?:static|const|volatile)\s+)+)/);
-    const qualifierText = qualifiers ? qualifiers[1].trim().replace(/\s+/g, ' ') + ' ' : '';
+    let qualifierText = qualifiers ? qualifiers[1].trim().replace(/\s+/g, ' ') + ' ' : '';
     const stmtNoQual = qualifiers ? stmt.slice(qualifiers[0].length) : stmt;
     const isStatic = /^\s*static\b/.test(stmt);
 
     const primitiveMatch = stmtNoQual.match(PRIMITIVE_TYPE_REGEX);
     if (primitiveMatch) {
       const varType = normalizeType(primitiveMatch[1]);
-      const decls = primitiveMatch[2].trim();
+      let decls = primitiveMatch[2].trim();
+      // C++ allows qualifiers after the type: `int volatile flag;`, `unsigned long const N = 5;`.
+      // They apply to every declarator of the list and must not be lost (a lost `volatile`
+      // lets the compiler cache an ISR-shared flag), so move them into the qualifier prefix.
+      const trailing = decls.match(/^((?:(?:const|volatile)\s+)+)/);
+      if (trailing) {
+        const merged = [];
+        for (const word of (qualifierText + trailing[1]).trim().split(/\s+/))
+          if (!merged.includes(word)) merged.push(word);
+        qualifierText = merged.join(' ') + ' ';
+        decls = decls.slice(trailing[0].length).trim();
+      }
       // A C array must remain a global C declaration. It cannot be converted
       // to a FLProg scalar variable or its [size] and initializer are lost.
       // Keep the legacy static_declarations field for saved-project compatibility;
@@ -471,7 +482,9 @@ function parseGlobalSection(globalSection, functions) {
       });
       continue;
     }
-    if (/^[A-Za-z_][A-Za-z0-9_:<>]*\s+.+$/s.test(stmt)) {
+    // A template argument list may contain commas and spaces: `std::array<int, 3> arr;`,
+    // `std::map<int, String> m;`. Without allowing them such an object was dropped silently.
+    if (/^[A-Za-z_][A-Za-z0-9_:]*(?:\s*<[^;{}]*>)?\s+.+$/s.test(stmt)) {
       const index = extraDeclarations.push(stmt + ';') - 1;
       declarationOrder.push({kind:'extra', index, position:startIdx});
     }

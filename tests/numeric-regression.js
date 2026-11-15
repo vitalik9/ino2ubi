@@ -38,27 +38,26 @@ for(const [literal,type] of invalid) {
 assert.strictEqual(n.normalizeInteger('32767','int','nano','I'),'32767');
 assert.throws(()=>n.normalizeInteger('32768','int','nano','I'), /диапазон int/);
 assert.strictEqual(n.normalizeInteger('32768','int','esp32','I'),'32768');
-const source=fs.readFileSync(path.join(dir,'tests/ble_presence_reference.ino'),'utf8').replace(
-  'unsigned long HoldTimeMs = 60000;', 'unsigned long HoldTimeMs = 60000UL;'
-);
-assert(/60000UL;\s*\/\/ par/.test(source),'BLE fixture has HoldTimeMs parameter');
-const p=api.parseArduinoCode(source);
-assert.strictEqual(p.variables.HoldTimeMs.default,'60000UL');
-assert.strictEqual(api.ino2ubiCompat.validateConverterInput(source,p,false,'esp32').errors.length,0);
-const xml=api.createUbiXmlSixx('BLE-Numeric','test',p.variables,p.functions,p.global_includes,p.defines,p.extra_declarations,p.static_declarations,
-  api.extractFunctionBody(source,'setup'),api.extractFunctionBody(source,'loop'),false,{singleInstance:true,bleCallbacks:p.ble_callbacks,targetBoard:'esp32'});
-assert(api.ino2ubiCompat.inspectGeneratedXml(xml).valid,'Basic XML references valid');
-assert(xml.includes('sixx.name="numberDefaultValue" sixx.type="SmallInteger" sixx.env="Core" >60000</sixx.object>'),'Basic XML stores 60000');
-assert(!xml.includes('numberDefaultValue" sixx.type="SmallInteger" sixx.env="Core" >60000UL'),'Basic must strip suffix');
-// Standalone numeric test with no BLE and an integer parameter that exceeds target range.
-const overflow=source.replace('60000UL','4294967296UL');
-const parsedOverflow=api.parseArduinoCode(overflow);
-const errors=api.ino2ubiCompat.validateConverterInput(overflow,parsedOverflow,false,'esp32').errors;
-assert(errors.some(e=>e.includes('HoldTimeMs')&&e.includes('4294967296UL')));
-const issues=api.ino2ubiDiagnostics.enrich(overflow,{errors});
-const expectedLine=overflow.slice(0,overflow.indexOf('unsigned long HoldTimeMs =')).split('\n').length;
-assert(issues.some(i=>i.message.includes('HoldTimeMs')&&i.line===expectedLine), 'report source line');
-assert.throws(()=>api.createUbiXmlSixx('BAD','bad',parsedOverflow.variables,parsedOverflow.functions,parsedOverflow.global_includes,parsedOverflow.defines,
-  parsedOverflow.extra_declarations,parsedOverflow.static_declarations,api.extractFunctionBody(overflow,'setup'),api.extractFunctionBody(overflow,'loop'),false,
-  {singleInstance:true,bleCallbacks:parsedOverflow.ble_callbacks,targetBoard:'esp32'}),/HoldTimeMs/);
-console.log(`PASS numeric regression: ${valid.length} valid, ${invalid.length} invalid, AVR/ESP32 bounds, Basic XML and diagnostic source line`);
+// Integer parameter defaults through the PRODUCTION pipeline (Code Professional, jsdom). The BLE sketch that
+// used to carry HoldTimeMs is covered by the legacy BLE suite; the numeric behaviour is checked on a plain sketch.
+const L=require('./lib/load.js'), UBI=require('./lib/ubi.js');
+(async()=>{
+  const win=L.loadProduction();
+  const source='/* Hold */\nunsigned long HoldTimeMs = 60000UL; // par\nbool outOn = false; // out\nvoid setup() {}\nvoid loop() { outOn = HoldTimeMs > 100; }';
+  const exported=L.exportBlock(win,source);
+  assert.deepStrictEqual(exported.errors,[],exported.errors.join('; '));
+  assert(win.ino2ubiCompat.inspectGeneratedXml(exported.xml).valid,'XML references valid');
+  assert(/sixx\.name="defaultValue" sixx\.type="SmallInteger" sixx\.env="Core"\s*>60000<\/sixx\.object>/.test(exported.xml),'Professional XML stores 60000');
+  assert(!/>60000UL</.test(exported.xml),'suffix must be stripped');
+  assert.strictEqual(UBI.parseUbi(win,exported.xml).params.find(x=>x.name==='HoldTimeMs').type,'UnsignedLongDataType');
+  // A parameter that exceeds the target range is rejected with the source line and blocks the export.
+  const overflow=source.replace('60000UL','4294967296UL');
+  const parsedOverflow=win.parseArduinoCode(overflow);
+  const errors=L.runChecks(win,overflow,parsedOverflow,false,true).errors;
+  assert(errors.some(e=>e.includes('HoldTimeMs')&&e.includes('4294967296UL')),errors.join('; '));
+  const issues=win.ino2ubiDiagnostics.enrich(overflow,{errors});
+  const expectedLine=overflow.slice(0,overflow.indexOf('unsigned long HoldTimeMs =')).split('\n').length;
+  assert(issues.some(i=>i.message.includes('HoldTimeMs')&&i.line===expectedLine),'report source line');
+  assert(L.exportBlock(win,overflow).errors.length>0,'export must be blocked');
+  console.log(`PASS numeric regression: ${valid.length} valid, ${invalid.length} invalid, AVR/ESP32 bounds, Professional XML and diagnostic source line`);
+})().catch(e=>{console.error(e);process.exit(1);});

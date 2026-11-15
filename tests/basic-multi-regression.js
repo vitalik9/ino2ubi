@@ -40,4 +40,4 @@ assert.throws(()=>api.ino2ubiBasicInstance.prepare({},['Preferences prefs;'],'pr
 assert.throws(()=>api.ino2ubiBasicInstance.prepare({},['char *ptr;'],'','',{singleInstance:false}),/неподдерживаемое/);
 assert.throws(()=>api.ino2ubiBasicInstance.prepare({cb:{name:'cb',return_type:'void',params:'',body:''}},[],'client.setCallback(cb);','',{singleInstance:false}),/callback/);
 console.log('PASS Basic two-instance: helper dependency ordering, local objects, SIXX, guarded unsupported cases');
-fs.writeFileSync('/mnt/data/ino2ubi_basic_multi_sample.xml',xml);
+// (a stray fs.writeFileSync('/mnt/data/...') that wrote outside the project was removed: tests must not write outside the repository)
