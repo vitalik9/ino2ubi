@@ -8,7 +8,7 @@ with sync_playwright() as p:
     browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
     page=browser.new_page(accept_downloads=True)
     html=(r/'index.html').read_text()
-    html=html[:html.index('<script src="constants.js?')]+'</body></html>'
+    html=html[:re.search(r'<script\b',html).start()]+'</body></html>'
     page.set_content(html)
     for script in scripts:page.add_script_tag(content=(r/script).read_text())
     src='''/* UIID test */

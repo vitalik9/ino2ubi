@@ -39,7 +39,20 @@
       return value;
     }
     if (type === 'String') return raw.replace(/^['"]|['"]$/g, '');
-    if (type === 'char') return normalizeCppIntegerDefault(raw, name); // signedness of char is target-dependent
+    if (type === 'char') {
+      // A character literal ('A', '\n', '\x41', '\101') is the natural default of a char parameter;
+      // FLProg stores numbers, so convert it. Multi-character literals stay rejected.
+      const literal = /^'(?:\\(?:([abfnrtv\\'"?])|x([0-9a-fA-F]{1,2})|([0-7]{1,3}))|([^\\'\r\n]))'$/.exec(raw);
+      if (literal) {
+        const simple = { a: 7, b: 8, f: 12, n: 10, r: 13, t: 9, v: 11, '\\': 92, "'": 39, '"': 34, '?': 63 };
+        if (literal[1]) return String(simple[literal[1]]);
+        if (literal[2]) return String(parseInt(literal[2], 16));
+        if (literal[3]) return String(parseInt(literal[3], 8));
+        if (literal[4].charCodeAt(0) > 127) throw new Error('Параметр ' + name + ': символ ' + raw + ' вне ASCII; укажите числовой код.');
+        return String(literal[4].charCodeAt(0));
+      }
+      return normalizeCppIntegerDefault(raw, name); // signedness of char is target-dependent
+    }
     const value = normalizeCppIntegerDefault(raw, name);
     const range = INTEGRAL_RANGES[type];
     if (range && (BigInt(value) < range[0] || BigInt(value) > range[1]))
@@ -383,7 +396,7 @@
     // FLProg's native restriction is stored on the block instance, not in mainParametrs.
     // Checked UI = reusable; unchecked UI = exactly one occurrence per FLProg project.
     const reuseFlag=required(inst,'isUseItOnce');
-    reuseFlag.setAttribute('sixx.type', options.allowMultipleInstances === false ? 'True' : 'False');
+    reuseFlag.setAttribute('sixx.type', options.allowMultipleInstances === true ? 'False' : 'True');
     b.updateDescription(inst,description);
     const variables=Object.assign({},state.variables||{});
     if (options.enableInput) {
@@ -464,6 +477,23 @@
         constructorObjects.add(objectName);
         b.addVar(objectName);
       }
+    }
+    // Global C arrays of primitive types (parser puts them into static_declarations). A non-static array
+    // is instance state: register its name so that its declaration AND every use (setup, loop, helpers,
+    // initializers) receive the per-instance UUID suffix, exactly as scalar variables do.
+    // `static` arrays are left untouched (compat.js refuses them in multi-instance mode).
+    const arrayObjects=new Set();
+    for (const raw of state.static_declarations||[]) {
+      const decl=typeof raw==='string'?raw:(raw.code||raw.text||'');
+      if (/^\s*static\b/.test(decl) || !/\[[^\]]*\]/.test(decl.split('=')[0])) continue;
+      const am=decl.split('=')[0].match(/([A-Za-z_]\w*)\s*\[/);
+      if (!am) continue;
+      const arrayName=am[1];
+      if (arrayObjects.has(arrayName) || constructorObjects.has(arrayName) || variables[arrayName] ||
+          defines.some(d=>d.name===arrayName) || helpers.some(([key,f])=>(f.name||key)===arrayName))
+        throw new Error('Конфликт имени массива '+arrayName+': имя уже используется другой глобальной сущностью блока.');
+      arrayObjects.add(arrayName);
+      b.addVar(arrayName);
     }
     const includesFromSource=externalIncludes(state).map(s=>s.match(/"([^"]+)"/)[1]);
     const providedName=String(options.additionalHeaderFilename||'').trim();
@@ -757,5 +787,5 @@
     const v=new Uint8Array(2+s.length*2); v[0]=255;v[1]=254;
     for(let i=0;i<s.length;i++){const n=s.charCodeAt(i);v[2+2*i]=n&255;v[3+2*i]=n>>>8;}return v;
   }
-  root.ino2ubiProfessional={build,utf16le}; // A-13: unused crc32/zipFiles removed
+  root.ino2ubiProfessional={build,utf16le,validateParameterDefault}; // A-13: unused crc32/zipFiles removed
 })(window);

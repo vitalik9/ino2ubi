@@ -1,4 +1,5 @@
 """Regression: FLProg Professional helper functions tagged per instance, parameter types preserved."""
+import re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import xml.etree.ElementTree as ET
@@ -21,7 +22,7 @@ with sync_playwright() as p:
  b=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
  page=b.new_page(accept_downloads=True)
  html=(r/'index.html').read_text()
- html=html[:html.index('<script src="constants.js?')]+'</body></html>'
+ html=html[:re.search(r'<script\b',html).start()]+'</body></html>'
  page.set_content(html)
  for script in scripts:page.add_script_tag(content=(r/script).read_text())
  page.select_option('#exportMode','professional')

@@ -15,6 +15,7 @@
     const re = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|undef|include_next|pragma|error|warning|line|define)\b([^\r\n]*)/gm;
     let hit;
     const active = maskComments(source);
+    const code = typeof maskNonCode === 'function' ? maskNonCode(source) : source;
     while ((hit = re.exec(active))) {
       const kind = hit[1].toLowerCase(), tail = hit[2];
       if (kind === 'define') {
@@ -23,6 +24,13 @@
         if (/\\\s*$/.test(hit[0]))
           result.push(makeIssue(source, hit.index, 'CPP-MULTILINE', 'многострочный #define с продолжением \\ не сохраняется полностью.'));
       } else {
+        // Conditionals INSIDE setup()/loop()/helper bodies are copied verbatim (A-05); only
+        // directives outside every function body are lost by the generator.
+        if (/^(?:if|ifdef|ifndef|elif|else|endif)$/.test(kind)) {
+          let depth = 0;
+          for (let i = 0; i < hit.index; i++) { if (code[i] === '{') depth++; else if (code[i] === '}') depth = Math.max(0, depth - 1); }
+          if (depth > 0) continue;
+        }
         result.push(makeIssue(source, hit.index, 'CPP-CONDITION', 'директива #' + kind + ' не сохраняется в создаваемом .ubi; нельзя безопасно экспортировать одну ветку условной компиляции.'));
       }
     }
@@ -165,10 +173,30 @@
     return !!((parsed.ble_callbacks || []).length ||
       /\b(?:esp_now_init|esp_now_register_(?:recv|send)_cb|BLEDevice\s*::\s*(?:init|getScan)|WiFi\s*\.\s*(?:begin|onEvent)|Wire\s*\.\s*begin|SPI\s*\.\s*begin|Serial\s*\.\s*begin)\s*\(/.test(masked));
   }
+  // Hardware/software resources that exist once per sketch. Each instance of a reusable block
+  // runs its own setup(), so such calls are repeated; see compat.js [MULTI-RESOURCE].
+  function exclusiveResources(source) {
+    const masked = maskNonCode(String(source || ''));
+    const rules = [
+      ['ESP-NOW (esp_now_init / обработчик приёма-отправки)', /\besp_now_(?:init|register_recv_cb|register_send_cb)\s*\(/, 'ESP-NOW инициализируется один раз, а обработчик приёма/отправки в нём один: второй экземпляр заменит первый.'],
+      ['BLE (BLEDevice::init / getScan)', /\bBLEDevice\s*::\s*(?:init|getScan|deinit)\s*\(/, 'Стек BLE общий для всего проекта.'],
+      ['Wi-Fi (WiFi.begin / softAP / mode)', /\bWiFi\s*\.\s*(?:begin|softAP|mode|disconnect)\s*\(/, 'Wi-Fi-соединение общее для всего проекта.'],
+      ['шина I2C/SPI (Wire.begin / SPI.begin)', /\b(?:Wire|Wire1|SPI)\s*\.\s*begin\s*\(/, 'Шина инициализируется повторно с теми же или другими параметрами.'],
+      ['последовательный порт (Serial.begin)', /\bSerial[12]?\s*\.\s*begin\s*\(/, 'Повторная инициализация порта сбрасывает его буферы и скорость.'],
+      ['EEPROM/NVS (EEPROM.begin / Preferences)', /\bEEPROM\s*\.\s*begin\s*\(/, 'Области хранения экземпляров могут пересечься.'],
+      ['аппаратный таймер/LEDC (timerBegin, ledcAttach, ledcSetup)', /\b(?:timerBegin|ledcAttach|ledcSetup|ledcAttachPin)\s*\(/, 'Аппаратные таймеры и каналы LEDC ограничены и общие для проекта.']
+    ];
+    const found = [];
+    for (const [what, re, advice] of rules) {
+      const m = re.exec(masked);
+      if (m) found.push({ what, line: lineAt(source, m.index), advice });
+    }
+    return found;
+  }
   function inspect(source, parsed) {
     const input=String(source||''), state=parsed||{};
     return [...preprocessor(input),...functions(input,state),...callbacks(input,state),
       ...initializerSafety(input),...identifiers(input,state),...declarationOrder(input,state),...validateXmlText(input)];
   }
-  root.ino2ubiConversionSafety={inspect,requiresSingleInstance};
+  root.ino2ubiConversionSafety={inspect,requiresSingleInstance,exclusiveResources};
 })(typeof window !== 'undefined' ? window : globalThis);

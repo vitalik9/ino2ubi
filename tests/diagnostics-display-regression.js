@@ -13,7 +13,8 @@ const api = context.window;
 let tests = 0;
 function analyze(code) {
   const parsed = api.parseArduinoCode(code);
-  const converter = api.ino2ubiCompat.validateConverterInput(code, parsed, false, 'esp32');
+  // Single-instance mode: a global `HTTPClient http;` (no constructor arguments) is only a problem when several instances exist.
+  const converter = api.ino2ubiCompat.validateConverterInput(code, parsed, false, false);
   const board = api.ino2ubiEsp32.checkEsp32Core2017(code, parsed);
   const result = {
     errors: [...new Set([...converter.errors, ...board.errors])],

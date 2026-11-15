@@ -1,0 +1,1 @@
+{"name":"ino2ubi-test-tools","private":true,"version":"1.0.0","dependencies":{"jsdom":"^31.0.1","tree-sitter-wasms":"^0.1.13","web-tree-sitter":"^0.22.6"}}

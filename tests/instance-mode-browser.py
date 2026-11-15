@@ -1,4 +1,5 @@
 """UI and exported SIXX regression for FLProg multiple-instance checkbox."""
+import re
 from pathlib import Path
 import json
 import xml.etree.ElementTree as ET
@@ -15,7 +16,7 @@ with sync_playwright() as p:
     browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
     page=browser.new_page(accept_downloads=True)
     html=(root/'index.html').read_text()
-    html=html[:html.index('  <script src="constants.js"')]+'</body></html>'
+    html=html[:re.search(r'<script\b',html).start()]+'</body></html>'
     page.set_content(html)
     for src in ['constants.js','parser.js','string-params.js','flprog-header-catalog.js','library-audit.js','flprog-api-audit.js','professional.js','professional-template-data.js','compat.js','esp32.js','diagnostics.js','app.js']:
         page.add_script_tag(content=(root/src).read_text())
