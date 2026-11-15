@@ -86,3 +86,9 @@ H3 candidate: original relative order of parsed global variables, statics and co
 - Браузерные Python-тесты больше не зависят от точного форматирования тегов `<script>` в `index.html`.
 - Новый тест: `node tests/global-arrays-regression.js` (два экземпляра в одной единице трансляции, проверка грамматики C++).
 - Импорт в FLProg и компиляция реального проекта с несколькими экземплярами НЕ выполнялись.
+
+### RC4 local-variable UUID fix (FLProg 9.8.6)
+
+When "Использовать блок несколько раз" is enabled, simple automatic scalar declarations in `setup()` and `loop()` (e.g. `uint32_t curTm = millis();`) now receive a native per-instance FLProg UUID suffix in both declarations and references. This avoids duplicate local declarations if FLProg concatenates code fragments into one function scope. With the checkbox off the original identifiers remain unchanged. Global UUID handling and En behavior are unchanged.
+
+This is intentionally a conservative transformation: complex C++ local declarations (structured bindings, custom classes, pointer/reference declarations, compound declarator lists) are not yet automatically isolated; verify generated FLProg C++ for these cases. A browser/g++ regression is included in `tests/local-uuid-browser.py`.

@@ -285,9 +285,12 @@
       bool(edit,'isComment',false);bool(edit,'isTextConstant',false);
       return edit;
     }
-    function partsFromCode(text,items) {
+    function partsFromCode(text,items,localVars) {
       // Replace C++ identifiers by native FLProg references, without touching comments or literals.
-      const symbols=Array.from(new Set([...userIO.keys(),...userParams.keys(),...userVars,...userFunctions]));
+      // FIX RC4: section-local variables need UUID tags too. Some FLProg 9.8.6
+      // versions concatenate loop snippets and discard the outer lexical braces.
+      const localNames=localVars || new Set();
+      const symbols=Array.from(new Set([...userIO.keys(),...userParams.keys(),...userVars,...userFunctions,...localNames]));
       const source=String(text || '');
       if (!symbols.length) {items.appendChild(plain(source));return;}
       const regex=new RegExp('\\b('+symbols.sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','g');
@@ -309,7 +312,7 @@
         // Do not rewrite object members or namespace-qualified names.
         const memberAccess=/(?:\.|->|::)$/.test(prev);
         const instanceFunction=userFunctions.has(key) && !memberAccess;
-        const instanceVariable=userVars.has(key) && !memberAccess;
+        const instanceVariable=(userVars.has(key) || localNames.has(key)) && !memberAccess;
         if (memberAccess) {
           items.appendChild(plain(key));
         } else if (instanceFunction || instanceVariable) {
@@ -324,7 +327,28 @@
       }
       items.appendChild(plain(source.slice(cursor)));
     }
-    function codePart(instance, sectionName, position, codeName, source) {
+    // Identify simple automatic local declarations in Setup/Loop. Their names
+    // must be per-instance even if FLProg flattens the code-part braces.
+    // Exclude static, thread_local and arbitrary class/structured declarations:
+    // those require a full C++ scope-aware parser and are not guessed here.
+    function automaticLocalNames(source) {
+      const masked=typeof maskNonCode==='function'?maskNonCode(String(source)):String(source);
+      const names=new Set();
+      const type='(?:bool|boolean|char|byte|short|int|long|float|double|size_t|auto|u?int(?:8|16|32|64)_t|unsigned\\s+(?:char|short|int|long)|signed\\s+(?:char|short|int|long))';
+      // Simple declarations at statement boundaries, including `for (type i=...)`.
+      const re=new RegExp('(?:^|[;{}\\n]|\\bfor\\s*\\\()\\s*(?:(?:const|volatile)\\s+)*('+type+')\\s+([A-Za-z_]\\w*)\\s*(?=[=;\\[,)]|$)','g');
+      let m;
+      while((m=re.exec(masked))!==null) {
+        const name=m[2];
+        // A local declaration shadowing a global/contact/parameter requires
+        // scope-aware rewriting. Do not risk silently changing its meaning.
+        if (userVars.has(name) || userFunctions.has(name) || userIO.has(name) || userParams.has(name))
+          throw new Error('Code Professional: локальная переменная '+name+' перекрывает глобальное имя; безопасное UUID-переименование требует отдельной проверки.');
+        names.add(name);
+      }
+      return names;
+    }
+    function codePart(instance, sectionName, position, codeName, source, isolateLocals) {
       if (!String(source || '').trim()) return;
       // FIX29: FLProg concatenates code fragments from adjacent instances
       // verbatim. A terminal newline prevents `}NextStatement` and, more
@@ -339,7 +363,7 @@
       const part=ard(items,null,'UserCodeMultiBlockCodePartsInstance');
       logicalId(part);
       const code=core(part,'codeText','OrderedCollection');
-      partsFromCode(source,code);
+      partsFromCode(source,code,isolateLocals ? automaticLocalNames(source) : null);
       core(part,'conditionType','Symbol','none');
       core(part,'codeName','String',codeName);
       bool(part,'isCommon',false);bool(part,'isMain',false);
@@ -622,8 +646,8 @@
     ].filter(Boolean).join('\n');
     let loop=window.ino2ubiStringParams.transform(options.loopCode||'',stringParams,[],numericParams);
     if (options.enableInput) loop='if (En) {\n'+loop+'\n}';
-    b.codePart(inst,'setup','stop','Инициализация','{\n'+setup+'\n}');
-    b.codePart(inst,'loop','stop','Основной цикл','{\n'+loop+'\n}');
+    b.codePart(inst,'setup','stop','Инициализация','{\n'+setup+'\n}',options.allowMultipleInstances===true);
+    b.codePart(inst,'loop','stop','Основной цикл','{\n'+loop+'\n}',options.allowMultipleInstances===true);
     // FLProg uses *logical* SmallInteger IDs to identify library blocks and their
     // nested components. The SIXX object ids/idrefs above are serialization-local
     // and must remain untouched. Template logical IDs must NOT be exported verbatim.
