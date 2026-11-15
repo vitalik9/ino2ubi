@@ -55,6 +55,7 @@
     return clean.slice(0, 24).replace(/\s+\S*$/, '').trim() || clean.slice(0, 24);
   }
   const enableInput = document.getElementById('enableInput');
+  const allowMultipleInstances = document.getElementById('allowMultipleInstances');
   // Единственный формат экспорта — Code Professional.
   const formatHelp = document.getElementById('formatHelp');
   const remoteXYNotSupported = 'RemoteXY пока не поддерживается в Code Professional. Экспорт отключён.';
@@ -112,7 +113,7 @@
 
   // All checks are run on «Парсить код», manual check and before export.
   function runChecks(code, parsed) {
-    const converter = compat.validateConverterInput(code, parsed, enableInput.checked);
+    const converter = compat.validateConverterInput(code, parsed, enableInput.checked, allowMultipleInstances.checked);
     const board = esp32.checkEsp32Core(code, parsed, CORE_VERSION);
     const api = window.ino2ubiFlprogApiAudit ? window.ino2ubiFlprogApiAudit.analyze(code) : {errors:[],warnings:[],infos:[]};
     const headers = window.ino2ubiLibraryAudit ? window.ino2ubiLibraryAudit.analyze((parsed && parsed.global_includes) || []) : {warnings:[],infos:[]};
@@ -251,6 +252,7 @@
         blockName.value = data.settings.blockName || 'Custom Block';
         blockDesc.value = data.settings.blockDescription || '';
         enableInput.checked = !!data.settings.enableInput;
+        allowMultipleInstances.checked = data.settings.allowMultipleInstances !== false;
         // Старые проекты открываются, но проверяются только под Core 3.3.11.
         parsedSource = data.code;
         if (/\bRemoteXY_CONF_PROGMEM\b/.test(data.code)) {
@@ -310,6 +312,7 @@
     blockName.value = '';
     blockDesc.value = '';
     enableInput.checked = false;
+    allowMultipleInstances.checked = true;
     if (remoteXYEepromOffset) remoteXYEepromOffset.value = '0';
     parsedSource = null;
     remoteXYMode = false;
@@ -339,7 +342,7 @@
       return;
     }
     const project = compat.makeProject(codeInput.value, state, {
-      blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked,
+      blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked, allowMultipleInstances: allowMultipleInstances.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
       exportMode: 'professional', targetProfile: 'esp32-arduino-' + CORE_VERSION
     });
@@ -560,6 +563,16 @@
   }
 
 
+  allowMultipleInstances.addEventListener('change', function () {
+    if (parsedSource === codeInput.value && codeInput.value.trim() && !remoteXYMode) {
+      const result = runChecks(codeInput.value, state);
+      showEsp32Diagnostics(result, codeInput.value);
+      setStatus(allowMultipleInstances.checked ?
+        'Режим: несколько экземпляров. Ошибок: ' + result.errors.length :
+        'Режим: один экземпляр. Ошибок: ' + result.errors.length, !!result.errors.length);
+    }
+  });
+
   // FIX26: restore the Professional export click handler lost when Basic was removed.
   btnGenerate.addEventListener('click', function () {
     const code = codeInput.value;
@@ -595,6 +608,7 @@
         state,
         source: code,
         enableInput: enableInput.checked,
+        allowMultipleInstances: allowMultipleInstances.checked,
         setupCode: window.extractFunctionBody(code, 'setup'),
         loopCode: window.extractFunctionBody(code, 'loop'),
         additionalHeader: '', additionalHeaderFilename: ''

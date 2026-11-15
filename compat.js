@@ -47,7 +47,7 @@
       parsed: JSON.parse(JSON.stringify(parsed)),
       settings: { blockName: String(settings.blockName || ''),
         blockDescription: String(settings.blockDescription || ''),
-        enableInput: !!settings.enableInput, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-3.3.11' }
+        enableInput: !!settings.enableInput, allowMultipleInstances: settings.allowMultipleInstances !== false, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-3.3.11' }
     };
   }
 
@@ -235,7 +235,7 @@
     return errors;
   }
 
-  function validateConverterInput(code, parsed, enableInput) {
+  function validateConverterInput(code, parsed, enableInput, allowMultipleInstances = true) {
     const safety = checkArrayAndDefineSafety(code, parsed);
     const flow = checkSharedExecutionSafety(code);
     const loops = checkWhileSafety(code);
@@ -263,20 +263,20 @@
       errors.push('Глобальный указатель/ссылка C++: безопасная генерация и изоляция пока не поддерживаются. Это сознательное ограничение: указатель, общий для нескольких экземпляров блока, может привести к конфликту (например, глобальный hw_timer_t* timer). Защита сохранена; вынесите логику в вызовы API FLProg или в локальные переменные функций.');
     // Top-level static, arrays, templates, classes and simple ctor-less objects
     // have no guaranteed per-instance isolation in existing Professional generator.
-    if (/(?:^|[;\n])\s*static\s+/m.test(declarations))
+    if (allowMultipleInstances && /(?:^|[;\n])\s*static\s+/m.test(declarations))
       errors.push('Глобальная static-переменная: независимость экземпляров не обеспечена.');
     if (/\b(?:enum|struct|class|union)\s+[A-Za-z_]\w*\s*[{;:]/.test(declarations))
       errors.push('Глобальные enum/struct/class/union требуют отдельного безопасного преобразования.');
     if (/\b(?:std::)?[A-Za-z_]\w*\s*<[^;\n]+>\s+[A-Za-z_]\w*\s*[;=({]/.test(declarations))
       errors.push('Шаблонный глобальный объект: независимость экземпляров не подтверждена.');
-    if (/(?:^|[;\n])\s*(?:const\s+|volatile\s+)*[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*\[[^\]]*\]/m.test(declarations))
+    if (allowMultipleInstances && /(?:^|[;\n])\s*(?:const\s+|volatile\s+)*[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*\s+[A-Za-z_]\w*\s*\[[^\]]*\]/m.test(declarations))
       errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
     // A-03: an array declared inside a declarator list (int a = 1, c[3];) is not
     // at the start of a statement, so the check above cannot see it. The parser
     // moves such arrays into static_declarations; block every non-static one here.
     for (const raw of (fresh.static_declarations || [])) {
       const d = String(raw).trim();
-      if (/\[[^\]]*\]/.test(d) && !/^static\b/.test(d)) {
+      if (allowMultipleInstances && /\[[^\]]*\]/.test(d) && !/^static\b/.test(d)) {
         errors.push('Глобальный массив: безопасная изоляция нескольких экземпляров не реализована.');
         break;
       }

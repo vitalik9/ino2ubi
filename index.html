@@ -100,6 +100,11 @@
             <p class="hint">Экспорт только Code Professional. Код, помещающийся в UBI, остаётся внутри блока. Внешние заголовки проверяются как зависимости; отсутствующие библиотеки автоматически не выдумываются.</p>
           </div>
           <div class="field checkbox-field">
+            <input type="checkbox" id="allowMultipleInstances" value="1" checked>
+            <label for="allowMultipleInstances">Использовать блок несколько раз в одном проекте FLProg</label>
+          </div>
+          <p class="hint">Если галочка снята, FLProg разрешит только один экземпляр блока. При включении проверяется изоляция состояния между экземплярами.</p>
+          <div class="field checkbox-field">
             <input type="checkbox" id="enableInput" value="1">
             <label for="enableInput">Вход En (условие выполнения кода в Loop: if(En))</label>
           </div>
@@ -124,6 +129,7 @@
           <p>Конвертер создаёт один .ubi в формате Code Professional для FLProg.</p>
           <p>Вставьте или откройте .ino, нажмите «Парсить код», проверьте входы, выходы и параметры, затем «Сгенерировать Code Professional .ubi».</p>
           <p>Маркеры: <code>// in</code> — вход; <code>// out</code> — выход; <code>// par: Описание</code> — параметр; <code>// variable</code> — внутренняя переменная.</p>
+          <p>Галочка «Использовать блок несколько раз» управляет разрешением на повторное размещение блока в проекте FLProg и проверками изоляции C++ состояния.</p>
           <p>Для сохранения правок используйте «Сохранить проект» (.i2u.json). Старые проекты Basic можно открывать, но экспорт всегда создаётся в Professional.</p>
           <p>RemoteXY пока не поддерживается в формате Professional. Проверка в браузере не заменяет импорт и компиляцию в FLProg.</p>
           <p>Целевая среда: FLProg 9.8.6 / ESP32 Arduino Core 3.3.11. Диагностика не заменяет компиляцию в FLProg.</p>

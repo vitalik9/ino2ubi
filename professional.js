@@ -380,6 +380,10 @@
     textOf(required(main,'mainParametrs'),'folderName',name);
     textOf(inst,'name',name);
     textOf(inst,'label',name.slice(0,32));
+    // FLProg's native restriction is stored on the block instance, not in mainParametrs.
+    // Checked UI = reusable; unchecked UI = exactly one occurrence per FLProg project.
+    const reuseFlag=required(inst,'isUseItOnce');
+    reuseFlag.setAttribute('sixx.type', options.allowMultipleInstances === false ? 'True' : 'False');
     b.updateDescription(inst,description);
     const variables=Object.assign({},state.variables||{});
     if (options.enableInput) {
@@ -677,6 +681,10 @@
     const blocks=children(instances,'UserCodeMultiBlockBlockInstance');
     if (blocks.length!==1) throw new Error('Code Professional: ожидается ровно один экземпляр блока.');
     const inst=blocks[0];
+    const reuseFlag=required(inst,'isUseItOnce');
+    if (!['True','False'].includes(reuseFlag.getAttribute('sixx.type')))
+      throw new Error('Code Professional: неверный флаг isUseItOnce.');
+
     const nodes=Array.from(doc.getElementsByTagName('sixx.object'));
     const ids=new Map();
     for (const node of nodes) {
