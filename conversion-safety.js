@@ -184,7 +184,11 @@
       ['шина I2C/SPI (Wire.begin / SPI.begin)', /\b(?:Wire|Wire1|SPI)\s*\.\s*begin\s*\(/, 'Шина инициализируется повторно с теми же или другими параметрами.'],
       ['последовательный порт (Serial.begin)', /\bSerial[12]?\s*\.\s*begin\s*\(/, 'Повторная инициализация порта сбрасывает его буферы и скорость.'],
       ['EEPROM/NVS (EEPROM.begin / Preferences)', /\bEEPROM\s*\.\s*begin\s*\(/, 'Области хранения экземпляров могут пересечься.'],
-      ['аппаратный таймер/LEDC (timerBegin, ledcAttach, ledcSetup)', /\b(?:timerBegin|ledcAttach|ledcSetup|ledcAttachPin)\s*\(/, 'Аппаратные таймеры и каналы LEDC ограничены и общие для проекта.']
+      ['аппаратный таймер/LEDC (timerBegin, ledcAttach, ledcSetup)', /\b(?:timerBegin|ledcAttach|ledcSetup|ledcAttachPin)\s*\(/, 'Аппаратные таймеры и каналы LEDC ограничены и общие для проекта.'],
+      ['GPIO/ISR (attachInterrupt, detachInterrupt)', /\b(?:attachInterrupt|detachInterrupt|attachInterruptArg)\s*\(/, 'Один GPIO не может независимо обслуживать два конфликтующих обработчика; проверьте распределение пинов и контекст ISR.'],
+      ['системный esp_timer (esp_timer_create)', /\besp_timer_(?:create|start_once|start_periodic|delete)\s*\(/, 'Каждый таймер должен иметь отдельный handle, callback и корректный жизненный цикл.'],
+      ['FreeRTOS (xTaskCreate / xTaskCreatePinnedToCore)', /\bxTaskCreate(?:PinnedToCore|Static|PinnedToCoreStatic)?\s*\(/, 'Повторное создание задач требует независимых handle/контекстов, защиты общих данных и контроля ресурсов.'],
+      ['ESP-IDF GPIO ISR (gpio_isr_handler_add)', /\bgpio_(?:install_isr_service|isr_handler_add|isr_handler_remove)\s*\(/, 'Сервис прерываний общий, а регистрацию пинов и callback нужно согласовать между блоками.']
     ];
     const found = [];
     for (const [what, re, advice] of rules) {

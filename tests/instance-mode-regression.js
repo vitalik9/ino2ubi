@@ -84,7 +84,7 @@ async function exportViaUi(ui, code, { en, multi }) {
     ok(code.declare.includes('volatile int counter_<UID> = 0;') && code.declare.includes('const int LIMIT_<UID> = 10;'), `${tag} qualifiers kept:\n${code.declare}`);
     ok(code.declare.includes('String label_<UID> = "abc";'), `${tag} String variable`);
     ok(code.declare.includes('int twice_<UID>(int v);') && /int twice_<UID>\(int v\) \{/.test(code.declare), `${tag} helper has prototype + definition`);
-    ok(code.loop.includes('static int calls = 0;'), `${tag} local static stays inside the block scope`);
+    ok(code.loop.includes(multi ? 'static int calls_<UID> = 0;' : 'static int calls = 0;'), `${tag} local static is isolated when multi`);
     ok(code.declare.includes('#define BLOCK_TAG "demo"'), `${tag} #define preserved`);
     ok(/#include <Arduino\.h>/.test(code.declare), `${tag} #include preserved`);
 
@@ -113,8 +113,7 @@ async function exportViaUi(ui, code, { en, multi }) {
   const sketch = (decl, setup = '', loop = 'outReady = inReady;') => `${base}${decl}\nvoid setup() { ${setup} }\nvoid loop() { ${loop} }\n`;
   const analyse = (src, multi, en = false) => L.runChecks(win, src, win.parseArduinoCode(src), en, multi);
   const MULTI_ONLY = [ // declarations that only break INDEPENDENCE of instances
-    ['static int total = 0;', 'Глобальная static-переменная'],
-    ['static volatile int total = 0;', 'Глобальная static-переменная'],
+    ['static String label = "x";', 'Глобальная static-конструкция'],
     ['Servo servos[2];', 'Глобальный массив'], // object arrays are still refused; primitive arrays are isolated (global-arrays-regression.js)
     ['std::array<int, 3> arr;', 'Шаблонный глобальный объект'],
     ['Preferences prefs;', 'Объект без аргументов конструктора'],
@@ -233,7 +232,7 @@ async function exportViaUi(ui, code, { en, multi }) {
   }
   { // switching a checkbox re-runs diagnostics immediately (before export)
     const ui = await openApp();
-    ui.code = sketch('static int total = 0;'); ui.setMultiple(true); ui.parse();
+    ui.code = sketch('static String label = "x";'); ui.setMultiple(true); ui.parse();
     ok(ui.status().error && /static/.test(ui.diagnostics()), 'multi: static is an error right after parsing');
     ui.setMultiple(false);
     ok(!ui.status().error && !/static/.test(ui.diagnostics().replace(/Известных/g, '')), 'unchecking the box clears the independence error: ' + ui.status().text);

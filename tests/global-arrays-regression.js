@@ -103,7 +103,6 @@ void loop() {
   const sk = (decl, extra = '') => `${base}${decl}\nvoid setup() {}\nvoid loop() { outReady = inReady; ${extra} }\n`;
   const blocked = [
     ['Servo servos[2];', true, 'Глобальный массив'],               // object array
-    ['static int total[4] = {0};', true, 'static'],                  // static array: no per-instance name
     ['int bad[] = {1, 2};', false, 'размер явным положительным'],    // size must be a literal
     ['#define N 4\nint bad[N];', false, 'числовой макрос'],           // numeric macro as size
     ['int dup[2];\nint dup[3];', true, 'Конфликт имени массива'],     // duplicate

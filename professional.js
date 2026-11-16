@@ -182,7 +182,41 @@
       const value = validateParameterDefault(name, info);
       const isBoolean=info.type==='bool' || info.type==='boolean';
       const numberType=info.type==='String'?'String':info.type==='float'||info.type==='double'?'Float':'SmallInteger';
-      if (!isBoolean) {
+      if (info.choices != null) {
+        if (!Array.isArray(info.choices) || info.choices.length < 2)
+          throw new Error('Параметр ' + name + ': требуется минимум два варианта выбора.');
+        const normalized = new Set();
+        const values = info.choices.map(choice => {
+          const optionValue=validateParameterDefault(name, Object.assign({}, info, {default:choice.value}));
+          if (normalized.has(optionValue)) throw new Error('Параметр ' + name + ': дублируется значение ' + optionValue);
+          normalized.add(optionValue);
+          if (!String(choice.label||'').trim()) throw new Error('Параметр ' + name + ': пустая подпись варианта.');
+          return {value:optionValue,label:String(choice.label)};
+        });
+        if (!normalized.has(value)) throw new Error('Параметр ' + name + ': значение по умолчанию ' + value + ' отсутствует в choices.');
+        // RadioButton schema taken from an FLProg 9.8.6-exported Professional block.
+        const species=ard(p,'parametrSpecies','UserCodeMultiBlockRadioButtonParametrSpecies');
+        logicalId(species);
+        const choices=core(species,'choices','OrderedCollection');
+        for (const item of values) {
+          const choice=ard(choices,null,'UserCodeMultiBlockComboBoxParametrSpeciesChoice');
+          logicalId(choice);
+          bool(choice,'isDefault',item.value===value);
+          core(choice,'text','String',item.label);
+          if (isBoolean) bool(choice,'value',item.value==='true');
+          else core(choice,'value',numberType,item.value);
+        }
+        // FLProg radio species also serializes an auxiliary booleanChoices collection.
+        // These are metadata for the editor, not alternative numerical values.
+        const booleanChoices=core(species,'booleanChoices','OrderedCollection');
+        for (const yes of [true,false]) {
+          const option=ard(booleanChoices,null,'UserCodeMultiBlockComboBoxParametrSpeciesChoice');
+          logicalId(option);
+          bool(option,'isDefault',false);
+          core(option,'text','String','');
+          bool(option,'value',yes);
+        }
+      } else if (!isBoolean) {
         // As in working FLProg Professional UBI libraries: editable value input.
         const species=ard(p,'parametrSpecies','UserCodeMultiBlockInputFieldParametrSpecies');
         logicalId(species);
@@ -329,14 +363,15 @@
     }
     // Identify simple automatic local declarations in Setup/Loop. Their names
     // must be per-instance even if FLProg flattens the code-part braces.
-    // Exclude static, thread_local and arbitrary class/structured declarations:
+    // Exclude thread_local and arbitrary class/structured declarations:
     // those require a full C++ scope-aware parser and are not guessed here.
+    // Simple primitive static locals are renamed while retaining persistent storage.
     function automaticLocalNames(source) {
       const masked=typeof maskNonCode==='function'?maskNonCode(String(source)):String(source);
       const names=new Set();
       const type='(?:bool|boolean|char|byte|short|int|long|float|double|size_t|auto|u?int(?:8|16|32|64)_t|unsigned\\s+(?:char|short|int|long)|signed\\s+(?:char|short|int|long))';
       // Simple declarations at statement boundaries, including `for (type i=...)`.
-      const re=new RegExp('(?:^|[;{}\\n]|\\bfor\\s*\\\()\\s*(?:(?:const|volatile)\\s+)*('+type+')\\s+([A-Za-z_]\\w*)\\s*(?=[=;\\[,)]|$)','g');
+      const re=new RegExp('(?:^|[;{}\\n]|\\bfor\\s*\\\()\\s*(?:(?:static|const|volatile)\\s+)*('+type+')\\s+([A-Za-z_]\\w*)\\s*(?=[=;\\[,)]|$)','g');
       let m;
       while((m=re.exec(masked))!==null) {
         const name=m[2];
@@ -432,7 +467,7 @@
       if (['input','output'].includes(v.role)) b.inputOutput(inst,n,v);
       if (v.role==='parameter') b.parameter(inst,n,v);
     }
-    const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value,alias:d.alias||d.name}:d);
+    const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value,alias:d.alias||d.name,choices:d.choices||null}:d);
     // FIX30: a #define and a declared C++ variable with the same identifier
     // cannot silently be interpreted as two different FLProg sources.
     // Reject collisions before writing any .ubi XML.
@@ -506,6 +541,22 @@
     // is instance state: register its name so that its declaration AND every use (setup, loop, helpers,
     // initializers) receive the per-instance UUID suffix, exactly as scalar variables do.
     // `static` arrays are left untouched (compat.js refuses them in multi-instance mode).
+    // A primitive file-scope static is still per-instance state. Preserve its
+    // storage qualifier, but tag the name and all uses with the instance UUID.
+    // This also covers simple static C arrays. The validator rejects other forms.
+    const staticObjects=new Set();
+    for (const raw of state.static_declarations||[]) {
+      const decl=typeof raw==='string'?raw:(raw.code||raw.text||'');
+      if (!/^\s*static\s+/.test(decl) || options.allowMultipleInstances!==true) continue;
+      const m=decl.match(/^\s*static\s+(?:(?:const|volatile)\s+)*(?:bool|boolean|byte|char|short|int|long|float|double|u?int(?:8|16|32)_t|unsigned\s+(?:char|short|int|long))\s+([A-Za-z_]\w*)\s*(?:\[[1-9][0-9]*\])?\s*(?:=|;)/);
+      if (!m) throw new Error('Code Professional: неподдерживаемое глобальное static-объявление: '+decl);
+      const name=m[1];
+      if (staticObjects.has(name) || variables[name] || constructorObjects.has(name) ||
+          defines.some(d=>d.name===name) || helpers.some(([key,f])=>(f.name||key)===name))
+        throw new Error('Конфликт имени глобальной static-переменной '+name);
+      staticObjects.add(name);
+      b.addVar(name);
+    }
     const arrayObjects=new Set();
     for (const raw of state.static_declarations||[]) {
       const decl=typeof raw==='string'?raw:(raw.code||raw.text||'');

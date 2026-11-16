@@ -356,13 +356,25 @@ function parseGlobalSection(globalSection, functions) {
 
   // A human-readable FLProg label may follow the role marker on the same line.
   // The C++ identifier remains unchanged in generated code and code tags.
+  // Optional FLProg radio-button options: // par: Mode | choices: 0=Off; 1=Auto
+  function parameterChoices(line) {
+    const match = String(line || '').match(/\/\/\s*(?:par|parameter)\b[^\r\n]*?\|\s*choices\s*:\s*(.*)$/i);
+    if (!match) return null;
+    const entries = match[1].split(';').map(s => s.trim()).filter(Boolean);
+    if (entries.length < 2) throw new Error('Список choices должен содержать минимум два варианта.');
+    return entries.map(entry => {
+      const pair = entry.match(/^([^=]+)=(.+)$/);
+      if (!pair) throw new Error('Неверный вариант choices: ' + entry + '. Используйте значение=Подпись.');
+      return {value:pair[1].trim(), label:pair[2].trim()};
+    });
+  }
   function roleLabel(line, role) {
     const token = role === 'parameter' ? '(?:par|parameter)' : role === 'input' ? '(?:in|input)' : role === 'output' ? '(?:out|output)' : null;
     if (!token) return '';
     const match = line.match(new RegExp('\\/\\/\\s*' + token + '\\b\\s*(?::|[-–—])\\s*(.+)$', 'i'));
     // Explanatory comments are not necessarily valid C++ pin identifiers.
     // Keep the original source variable name in that case.
-    const candidate = match ? match[1].trim() : '';
+    const candidate = match ? match[1].split(/\s*\|\s*choices\s*:/i)[0].trim() : '';
     return /^[A-Za-z_][A-Za-z_0-9]*$/.test(candidate) ? candidate : '';
   }
 
@@ -385,7 +397,7 @@ function parseGlobalSection(globalSection, functions) {
     const role = /\/\/\s*(?:par|parameter)\b/i.test(rest) ? 'parameter' : 'global';
     const value = maskComments(rest).trim();
     defines.push({ name, value, role, type: inferDefineType(value), alias: roleLabel(line, role) || name,
-      raw: stripped.replace(/\s*\/\/.*$/, '').trimEnd(), position: lineOffset });
+      raw: stripped.replace(/\s*\/\/.*$/, '').trimEnd(), choices:role==='parameter'?parameterChoices(line):null, position: lineOffset });
     lineOffset += line.length + 1;
   });
 
@@ -477,6 +489,7 @@ function parseGlobalSection(globalSection, functions) {
           role,
           qualifiers: qualifierText.trim(),
           alias: roleLabel(lineText, role) || varName,
+          choices: role === 'parameter' ? parameterChoices(lineText) : null,
           position: startIdx
         };
       });

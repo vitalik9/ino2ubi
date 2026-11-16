@@ -92,3 +92,22 @@ H3 candidate: original relative order of parsed global variables, statics and co
 When "Использовать блок несколько раз" is enabled, simple automatic scalar declarations in `setup()` and `loop()` (e.g. `uint32_t curTm = millis();`) now receive a native per-instance FLProg UUID suffix in both declarations and references. This avoids duplicate local declarations if FLProg concatenates code fragments into one function scope. With the checkbox off the original identifiers remain unchanged. Global UUID handling and En behavior are unchanged.
 
 This is intentionally a conservative transformation: complex C++ local declarations (structured bindings, custom classes, pointer/reference declarations, compound declarator lists) are not yet automatically isolated; verify generated FLProg C++ for these cases. A browser/g++ regression is included in `tests/local-uuid-browser.py`.
+
+
+## RC4 hardening: многократные экземпляры (16.11.2026)
+
+- В Code Professional при включённой опции нескольких экземпляров простые глобальные `static`-скаляры и `static`-массивы примитивных типов получают стандартный тег UUID FLProg; исходный квалификатор `static` сохраняется.
+- Простые локальные `static`-скаляры в `setup()`/`loop()` также получают UUID и сохраняют свою семантику времени жизни. В однократном режиме поведение не меняется.
+- Диагностика `[MULTI-RESOURCE]` расширена на `attachInterrupt`, GPIO ISR ESP-IDF, `esp_timer_*`, `xTaskCreate*`; она предупреждает о реальных общих аппаратных и RTOS-ресурсах, но НЕ доказывает корректность разделения ресурса.
+- Глобальные указатели, пользовательские классы, сложные статические объекты и другие конструкции без доказанной безопасной изоляции по-прежнему ограничены; нельзя обещать поддержку произвольного C++.
+- Добавлен `tests/hardening-browser.py`: 15 проверок реальной генерации `.ubi` в Chromium, отрицательные случаи, два экземпляра и синтаксическая компиляция через `g++` для поддерживаемых новых статических объявлений. **Это не проверка импорта FLProg/ESP32.**
+
+## Эксперимент: список выбора в свойствах готового блока FLProg
+
+Для числового параметра Code Professional можно указать варианты в комментарии объявления:
+
+```cpp
+uint8_t Mode = 1; // par: Mode | choices: 0=Выключено; 1=Автоматически; 2=Вручную
+```
+
+Пары разделяются `;`, слева — значение, справа — подпись у радиокнопки. Требуются минимум два варианта; значение по умолчанию должно совпадать с одним из них. Без `| choices:` сохраняется обычный редактор параметра. Значения проверяются на допустимый диапазон типа; повторяющиеся значения отвергаются. Варианты сериализуются как `UserCodeMultiBlockRadioButtonParametrSpecies` с коллекциями `choices` и `booleanChoices`, по образцу файла FLProg «04.Изменение числовых форматов (Code - Professional).ubi». **Реальное отображение в FLProg 9.8.6 ещё нужно проверить импортом тестового блока**: XML-проверка не заменяет открытие окна свойств.

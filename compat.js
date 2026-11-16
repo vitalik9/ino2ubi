@@ -282,10 +282,17 @@
     // Pointers, references, multidimensional indirection, pointer qualifiers.
     if (/(?:^|[;{}\n])\s*(?:(?:static|extern|const|volatile|unsigned|signed|struct)\s+)*(?:[A-Za-z_]\w*(?:::[A-Za-z_]\w*)*(?:\s*<[^;{}]+>)?(?:\s+[A-Za-z_]\w*)?)\s*[*&]+\s*(?:const\s+|volatile\s+|[*&]\s*)*[A-Za-z_]\w*/m.test(declarations))
       errors.push('Глобальный указатель/ссылка C++: безопасная генерация и изоляция пока не поддерживаются. Это сознательное ограничение: указатель, общий для нескольких экземпляров блока, может привести к конфликту (например, глобальный hw_timer_t* timer). Защита сохранена; вынесите логику в вызовы API FLProg или в локальные переменные функций.');
-    // Top-level static, arrays, templates, classes and simple ctor-less objects
-    // have no guaranteed per-instance isolation in existing Professional generator.
-    if (allowMultipleInstances && /(?:^|[;\n])\s*static\s+/m.test(declarations))
-      errors.push('Глобальная static-переменная: независимость экземпляров не обеспечена.');
+    // Simple primitive static globals are isolated with FLProg UUID tags in Professional.
+    // Reject any non-primitive/static object, function-local static with nontrivial
+    // constructor, or unsupported declarator rather than silently sharing state.
+    if (allowMultipleInstances) for (const raw of (fresh.static_declarations || [])) {
+      const decl=String(raw).trim();
+      if (!/^static\s+/.test(decl)) continue;
+      const scalar=/^static\s+(?:(?:const|volatile)\s+)*(?:bool|boolean|byte|char|short|int|long|float|double|u?int(?:8|16|32)_t|unsigned\s+(?:char|short|int|long))\s+[A-Za-z_]\w*\s*(?:=\s*[^;]+)?;$/;
+      const array=/^static\s+(?:(?:const|volatile)\s+)*(?:bool|boolean|byte|char|short|int|long|float|double|u?int(?:8|16|32)_t|unsigned\s+(?:char|short|int|long))\s+[A-Za-z_]\w*\s*\[[1-9][0-9]*\]\s*(?:=\s*[^;]+)?;$/;
+      if (!scalar.test(decl) && !array.test(decl))
+        errors.push('Глобальная static-конструкция не может быть безопасно изолирована по экземплярам: '+decl.slice(0,90));
+    }
     if (/\b(?:enum|struct|class|union)\s+[A-Za-z_]\w*\s*[{;:]/.test(declarations))
       errors.push('Глобальные enum/struct/class/union требуют отдельного безопасного преобразования.');
     // Template objects reach the declare section untagged: harmless for one instance only.

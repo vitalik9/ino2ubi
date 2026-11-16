@@ -100,8 +100,8 @@ const U = require('./lib/ubi.js');
     const a = await good(withGlobal('int threshold=2; // variable\nint table[2] = {threshold, 3}; // variable'), { allowMultiple: false });
     assert(a.sections.declare.indexOf('threshold_<UID> = 2') < a.sections.declare.indexOf('int table_<UID>[2]'), a.sections.declare);
     checked += 2;
-    // ...and in multi-instance mode the untagged static / array are refused instead.
-    assert(check(withGlobal('int threshold=2; // variable\nstatic int twice = threshold * 2; // variable'), true).errors.some(m => m.includes('static')));
+    // Simple static globals are now UUID-isolated in multi mode.
+    assert(!check(withGlobal('int threshold=2; // variable\nstatic int twice = threshold * 2; // variable'), true).errors.some(m => m.includes('Глобальная static')));
     // Primitive arrays are isolated per instance now: no error, and the initializer keeps its source order.
     assert(!check(withGlobal('int threshold=2; // variable\nint table[2] = {threshold, 3}; // variable'), true).errors.some(m => m.includes('Глобальный массив')));
     const multiArr = await good(withGlobal('int threshold=2; // variable\nint table[2] = {threshold, 3}; // variable'), { allowMultiple: true });
