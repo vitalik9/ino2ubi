@@ -47,7 +47,8 @@
       blockName: String(s.blockName || ''),
       blockDescription: String(s.blockDescription || ''),
       enableInput: s.enableInput === true,
-      allowMultipleInstances: s.allowMultipleInstances === true
+      allowMultipleInstances: s.allowMultipleInstances === true,
+      targetProfile: /^esp32-arduino-(?:2\.0\.17|3\.3\.11)$/.test(s.targetProfile || '') ? s.targetProfile : 'esp32-arduino-2.0.17'
     };
   }
 
@@ -59,7 +60,7 @@
       parsed: JSON.parse(JSON.stringify(parsed)),
       settings: { blockName: String(settings.blockName || ''),
         blockDescription: String(settings.blockDescription || ''),
-        enableInput: !!settings.enableInput, allowMultipleInstances: settings.allowMultipleInstances === true, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-3.3.11' }
+        enableInput: !!settings.enableInput, allowMultipleInstances: settings.allowMultipleInstances === true, remoteXYEepromOffset: settings.remoteXYEepromOffset || '0', exportMode: settings.exportMode || 'professional', professionalHeader: settings.professionalHeader || '', professionalHeaderFilename: settings.professionalHeaderFilename || '', targetProfile: settings.targetProfile || 'esp32-arduino-2.0.17' }
     };
   }
 

@@ -25,7 +25,7 @@ function loadProduction() { return loadWindow(indexScripts()); }
 function runChecks(win, code, parsed, enableInput, allowMultiple) {
   const compat = win.ino2ubiCompat, esp32 = win.ino2ubiEsp32;
   const conv = compat.validateConverterInput(code, parsed, enableInput, allowMultiple);
-  const board = esp32.checkEsp32Core(code, parsed, '3.3.11');
+  const board = esp32.checkEsp32Core(code, parsed, process.env.ESP32_CORE || '3.3.11');
   const api = win.ino2ubiFlprogApiAudit ? win.ino2ubiFlprogApiAudit.analyze(code) : { errors: [], warnings: [], infos: [] };
   const uniq = a => [...new Set(a)];
   return { errors: uniq([...conv.errors, ...board.errors, ...api.errors]),

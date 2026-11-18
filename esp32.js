@@ -1,4 +1,4 @@
-/* Preflight for ESP32 Arduino Core 3.3.11 (the only target). checkEsp32Core2017 is legacy reference code and is not called by the application.
+/* Preflight for ESP32 Arduino Core 2.0.17 (default) and 3.3.11 (selectable targets).
  * Run on source, before any conversion. Never silently rewrite an API.
  * Static diagnostics are advisory: they do not replace a C++ compilation.
  */
@@ -147,7 +147,6 @@
       ['ledcAttach', 'Используйте ledcSetup(channel, frequency, resolution) и ledcAttachPin(pin, channel).'],
       ['ledcAttachChannel', 'В Core 2.0.17 нужны ledcSetup() и ledcAttachPin().'],
       ['ledcDetach', 'В Core 2.0.17 используйте ledcDetachPin(pin).'],
-      ['ledcChangeFrequency', 'Проверьте старый API ledcSetup(channel, frequency, resolution).'],
       ['ledcOutputInvert', 'Функция появилась в Core 3.x; для 2.0.17 требуется другое решение.'],
       ['ledcFade', 'Функция из нового LEDC API; реализуйте плавное изменение через ledcWrite(channel, duty).'],
       ['ledcFadeWithInterrupt', 'Новый API Core 3.x недоступен в 2.0.17.'],
@@ -168,6 +167,72 @@
         addError('timerAttachInterrupt(): для Core 2.0.17 нужны 3 аргумента — (timer, callback, edge).');
     }
 
+    // API, появившиеся только в Arduino-ESP32 3.x (в 2.0.17 их нет).
+    const only3x = [
+      ['rgbLedWrite', 'Функция Core 3.x; в 2.0.17 используйте neopixelWrite(pin, r, g, b).'],
+      ['pinModeIsOutput', 'Функция Core 3.x.'],
+      ['touchInterruptSetThresholdDirection', 'Функция Core 3.x.'],
+      ['esp_task_wdt_reconfigure', 'Функция нового ESP-IDF 5.x; в 2.0.17 используйте esp_task_wdt_init(timeout_s, panic).']
+    ];
+    for (const [fn, advice] of only3x) {
+      if (new RegExp('\\b' + fn + '\\s*\\(').test(clean))
+        addError(fn + '(): несовместимо с Arduino-ESP32 2.0.17. ' + advice);
+    }
+    for (const call of callArgumentCounts(clean, 'ledcSetup'))
+      if (call.count !== 3)
+        addError('ledcSetup(): для Core 2.0.17 нужны 3 аргумента — ledcSetup(channel, frequency, resolution).');
+    for (const call of callArgumentCounts(clean, 'ledcChangeFrequency'))
+      if (call.count !== 3)
+        addError('ledcChangeFrequency(): для Core 2.0.17 нужны 3 аргумента — (channel, frequency, resolution).');
+    for (const call of callArgumentCounts(clean, 'analogWrite'))
+      if (call.count !== 2)
+        addError('analogWrite(): для Core 2.0.17 нужны 2 аргумента — (pin, value).');
+    for (const call of callArgumentCounts(clean, 'analogWriteFrequency'))
+      if (call.count !== 1)
+        addError('analogWriteFrequency(): для Core 2.0.17 нужен 1 аргумент — (frequency).');
+    for (const call of callArgumentCounts(clean, 'analogWriteResolution'))
+      if (call.count !== 1)
+        addError('analogWriteResolution(): для Core 2.0.17 нужен 1 аргумент — (bits).');
+    for (const call of callArgumentCounts(clean, 'ledcAttachPin'))
+      if (call.count !== 2)
+        addError('ledcAttachPin(): для Core 2.0.17 нужны 2 аргумента — ledcAttachPin(pin, channel).');
+    for (const call of callArgumentCounts(clean, 'timerAlarmWrite'))
+      if (call.count !== 3)
+        addError('timerAlarmWrite(): для Core 2.0.17 нужны 3 аргумента — (timer, ticks, autoreload).');
+    for (const call of callArgumentCounts(clean, 'esp_task_wdt_init'))
+      if (call.count !== 2)
+        addError('esp_task_wdt_init(): для Core 2.0.17 (ESP-IDF 4.4) нужны 2 аргумента — (timeout_s, panic).');
+    if (/\besp_task_wdt_config_t\b/.test(clean))
+      addError('esp_task_wdt_config_t недоступен в Arduino-ESP32 2.0.17 (ESP-IDF 4.4); используйте esp_task_wdt_init(timeout_s, panic).');
+    for (const header of ['Network.h', 'NetworkClient.h', 'NetworkClientSecure.h', 'NetworkServer.h', 'NetworkUdp.h', 'NetworkUDP.h', 'ESP_I2S.h', 'ESP_SR.h', 'Zigbee.h', 'Matter.h']) {
+      if (new RegExp('^\\s*#\\s*include\\s*[<"]' + header.replace('.', '\\.') + '[>"]', 'm').test(code))
+        addError('#include <' + header + '>: заголовок Core 3.x отсутствует в 2.0.17. Используйте стандартные <WiFi.h>, <WiFiClient.h>, <WiFiClientSecure.h>, <WiFiUdp.h>, <WebServer.h>, <driver/i2s.h>.');
+    }
+    if (/\b(?:NetworkClient|NetworkClientSecure|NetworkServer|NetworkUDP|NetworkInterface)\b/.test(clean))
+      addError('Классы Network* относятся к Core 3.x. В 2.0.17 используйте WiFiClient, WiFiClientSecure, WiFiServer, WiFiUDP.');
+    if (/\bledcWriteTone\s*\(|\bledcWriteNote\s*\(/.test(clean))
+      addWarning('ledcWriteTone()/ledcWriteNote(): в Core 2.0.17 первый аргумент — канал LEDC, а не GPIO.');
+    if (/\bledcRead\s*\(/.test(clean))
+      addWarning('ledcRead(): в Core 2.0.17 аргумент — канал LEDC, а не GPIO.');
+    if (/\bSYSTEM_EVENT_\w+/.test(clean))
+      addWarning('SYSTEM_EVENT_* устарели; в Core 2.0.17 используйте ARDUINO_EVENT_* (например ARDUINO_EVENT_WIFI_STA_GOT_IP).');
+    if (/\bhallRead\s*\(/.test(clean))
+      addWarning('hallRead(): доступен в 2.0.17 только на классическом ESP32 (не на S2/S3/C3/C6).');
+    if (/\bWebServer\b/.test(clean) && !/^\s*#\s*include\s*[<"]WebServer\.h[>"]/m.test(code))
+      addWarning('Используется WebServer без #include <WebServer.h>.');
+    if (/\bHTTPClient\b/.test(clean) && !/^\s*#\s*include\s*[<"]HTTPClient\.h[>"]/m.test(code))
+      addWarning('Используется HTTPClient без #include <HTTPClient.h>.');
+
+    if (/\besp_now_register_send_cb\s*\(/.test(clean)) {
+      const sendCbs = Object.values(parsed && parsed.functions || {}).filter(f => f && f.name !== 'setup' && f.name !== 'loop' &&
+        new RegExp('\\besp_now_register_send_cb\\s*\\(\\s*' + String(f.name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\)').test(clean));
+      for (const cb of sendCbs) {
+        const params = cb.parsed_params || [];
+        const first = params[0] && params[0].type || '';
+        if (params.length !== 2 || !/\buint8_t\b/.test(first) || !/\*/.test(first))
+          addError('ESP-NOW callback ' + cb.name + ' отправки должен принимать (const uint8_t* mac, esp_now_send_status_t status) для Core 2.0.17.');
+      }
+    }
     if (/\besp_now_recv_info_t\b/.test(clean))
       addError('esp_now_recv_info_t недоступен в Arduino-ESP32 2.0.17. Используйте приёмный callback: void onRecv(const uint8_t* mac, const uint8_t* data, int len).');
     if (/\besp_now_send_info_t\b/.test(clean))

@@ -149,13 +149,13 @@
       advice = 'Вместо return используйте условие if/else, чтобы не прервать остальные блоки FLProg.';
     } else if ((m = message.match(/^([A-Za-z_]\w*)\(\):/))) {
       idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\('));
-      advice = 'Используйте API, доступный в Arduino-ESP32 Core 3.3.11; проверьте параметры вызова.';
+      advice = /2\.0\.17/.test(message) ? 'Используйте API Arduino-ESP32 Core 2.0.17 (ledcSetup/ledcAttachPin/ledcWrite(канал), timerBegin(n,div,up), esp_task_wdt_init(sec,panic)); проверьте параметры вызова.' : 'Используйте API, доступный в Arduino-ESP32 Core 3.3.11; проверьте параметры вызова.';
     } else if ((m = message.match(/^Функция\s+([A-Za-z_]\w*)/))) {
       idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\('));
       advice = 'Проверьте сигнатуру после экспорта в .ubi и передавайте параметры явно.';
     } else if (/^esp_now_(recv|send)_info_t/.test(message)) {
       idx = findByRegex(clean, /\besp_now_(recv|send)_info_t\b/);
-      advice = 'Сверьте сигнатуру обратного вызова с esp_now.h вашего Core 3.3.11.';
+      advice = /2\.0\.17/.test(message) ? 'Для Core 2.0.17 используйте void onRecv(const uint8_t* mac, const uint8_t* data, int len).' : 'Сверьте сигнатуру обратного вызова с esp_now.h вашего Core 3.3.11.';
     } else if (/^Обнаружен код ESP8266/.test(message)) {
       idx = findByRegex(code, /ESP8266WiFi\.h|ESP8266WebServer/);
       advice = 'Замените ESP8266 API на соответствующий ESP32 API.';
@@ -168,7 +168,9 @@
     } else if (/^ESP-NOW callback/.test(message)) {
       m = message.match(/^ESP-NOW callback\s+([A-Za-z_]\w*)/);
       if (m) idx = findByRegex(clean, new RegExp('\\b' + escapeRegex(m[1]) + '\\s*\\('));
-      advice = /отправки/.test(message)
+      advice = /2\.0\.17/.test(message)
+        ? 'Для Core 2.0.17: void onSent(const uint8_t* mac, esp_now_send_status_t status); приём — void onRecv(const uint8_t* mac, const uint8_t* data, int len).'
+        : /отправки/.test(message)
         ? 'Для Core 3.3.11 сверьте сигнатуру callback отправки с esp_now.h: первый параметр — структура с информацией об отправке, а не MAC-адрес.'
         : 'Для Core 3.3.11 используйте void onRecv(const esp_now_recv_info_t* info, const uint8_t* data, int len).';
     } else if ((m = message.match(/^(hallRead|esp_task_wdt_init)\(\):/))) {

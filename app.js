@@ -36,7 +36,8 @@
   const compat = window.ino2ubiCompat;
   const esp32 = window.ino2ubiEsp32;
   const btnCheckEsp32 = document.getElementById('btnCheckEsp32');
-  const CORE_VERSION = '3.3.11'; // Единственный целевой ESP32 Arduino Core
+  const coreSelect = document.getElementById('coreVersion');
+  const getCoreVersion = () => coreSelect.value;
   const diagnosticsEl = document.getElementById('esp32Diagnostics');
   const btnClear = document.getElementById('btnClear');
   const btnParse = document.getElementById('btnParse');
@@ -132,7 +133,7 @@
   // All checks are run on «Парсить код», manual check and before export.
   function runChecks(code, parsed) {
     const converter = compat.validateConverterInput(code, parsed, enableInput.checked, allowMultipleInstances.checked);
-    const board = esp32.checkEsp32Core(code, parsed, CORE_VERSION);
+    const board = esp32.checkEsp32Core(code, parsed, getCoreVersion());
     const api = window.ino2ubiFlprogApiAudit ? window.ino2ubiFlprogApiAudit.analyze(code) : {errors:[],warnings:[],infos:[]};
     const headers = window.ino2ubiLibraryAudit ? window.ino2ubiLibraryAudit.analyze((parsed && parsed.global_includes) || []) : {warnings:[],infos:[]};
     return {
@@ -150,7 +151,7 @@
     const count = severity => issues.filter(item => item.severity === severity).length;
     diagnosticsEl.hidden = false;
     const heading = document.createElement('strong');
-    heading.textContent = 'Проверка ino2ubi / ESP32 Core ' + CORE_VERSION + ': ' +
+    heading.textContent = 'Проверка ino2ubi / ESP32 Core ' + getCoreVersion() + ': ' +
       count('error') + ' ошибок, ' + count('warning') + ' предупреждений' +
       (count('info') ? ', ' + count('info') + ' информационных сообщений' : '');
     diagnosticsEl.appendChild(heading);
@@ -275,7 +276,9 @@
         blockDesc.value = restored.blockDescription;
         enableInput.checked = restored.enableInput;
         allowMultipleInstances.checked = restored.allowMultipleInstances;
-        // Старые проекты открываются, но проверяются только под Core 3.3.11.
+        // Keep the target selected in a saved project; older projects default to 2.0.17.
+        const savedCore = /^esp32-arduino-(2\.0\.17|3\.3\.11)$/.exec(data.settings.targetProfile || '');
+        coreSelect.value = savedCore ? savedCore[1] : '2.0.17';
         parsedSource = data.code;
         if (/\bRemoteXY_CONF_PROGMEM\b/.test(data.code)) {
           const savedAliases = {};
@@ -328,6 +331,18 @@
     } finally { fileIno.value = ''; }
   });
 
+  coreSelect.addEventListener('change', function () {
+    if (parsedSource && parsedSource === codeInput.value) {
+      const checks = runChecks(codeInput.value, state);
+      showEsp32Diagnostics(checks, codeInput.value);
+      setStatus('Целевая версия ESP32 Core: ' + getCoreVersion() + '. Ошибок: ' + checks.errors.length, checks.errors.length > 0);
+    } else {
+      diagnosticsEl.textContent = '';
+      diagnosticsEl.hidden = true;
+      setStatus('Целевая версия ESP32 Core: ' + getCoreVersion() + '. Нажмите «Парсить код» для проверки.');
+    }
+  });
+
   btnClear.addEventListener('click', function () {
     codeInput.value = '';
     fileIno.value = '';
@@ -366,7 +381,7 @@
     const project = compat.makeProject(codeInput.value, state, {
       blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked, allowMultipleInstances: allowMultipleInstances.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
-      exportMode: 'professional', targetProfile: 'esp32-arduino-' + CORE_VERSION
+      exportMode: 'professional', targetProfile: 'esp32-arduino-' + getCoreVersion()
     });
     const filename = (blockName.value || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.i2u.json';
     downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: 'application/json;charset=utf-8' }), filename);
