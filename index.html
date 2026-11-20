@@ -88,7 +88,9 @@
         </div>
 
         <div id="remoteXYEepromBox" class="settings" hidden>
-          <h3>RemoteXY EEPROM</h3>
+          <h3>RemoteXY — настройки</h3>
+          <label style="display:block;margin-bottom:10px"><input type="checkbox" id="remoteXYBidirectional" checked> Двустороннее управление (входы _set / _apply для переключателей и полей ввода)</label>
+          <p class="hint">Выход элемента показывает общее значение ESP32. Вход _set задаёт новое значение, _apply применяет его по фронту 0→1. Для следующей команды верните _apply в 0.</p>
           <p id="remoteXYEepromStatus" class="hint"></p>
           <label id="remoteXYEepromOffsetLabel" for="remoteXYEepromOffset" hidden>Смещение EEPROM</label>
           <input id="remoteXYEepromOffset" type="number" value="0" min="0" max="4096" hidden>

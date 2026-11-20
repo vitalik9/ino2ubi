@@ -63,6 +63,7 @@
   const remoteXYEepromBox = document.getElementById('remoteXYEepromBox');
   const remoteXYEepromOffset = document.getElementById('remoteXYEepromOffset');
   const remoteXYEepromStatus = document.getElementById('remoteXYEepromStatus');
+  const remoteXYBidirectional = document.getElementById('remoteXYBidirectional');
   function showRemoteXYEeprom(data) {
     if (!remoteXYEepromBox) return;
     const hasNetNotification = !!(data && data.sections && data.sections.complex && data.sections.complex.some(f => f.type === 'RemoteXYType_NotificationNet'));
@@ -228,7 +229,8 @@
       if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
         if (getCoreVersion() !== '2.0.17') throw new Error('RemoteXY адаптер проверяется только для ESP32 Core 2.0.17.');
         const built = window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY', {
-          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0,
+          bidirectional: remoteXYBidirectional ? remoteXYBidirectional.checked : true
         });
         result = remoteXYChecks(built.data);
       } else {
@@ -295,6 +297,10 @@
               if (state.variables[key] && typeof alias === 'string' && alias.trim()) state.variables[key].alias = alias;
             });
             renderVariables();
+            if (data.settings.remoteXYBidirectional != null && remoteXYBidirectional) {
+              remoteXYBidirectional.checked = !!data.settings.remoteXYBidirectional;
+              btnParse.click();
+            }
             if (data.settings.remoteXYEepromOffset != null && remoteXYEepromOffset) {
               remoteXYEepromOffset.value = String(data.settings.remoteXYEepromOffset);
               refreshRemoteXYEepromPreview();
@@ -394,6 +400,7 @@
     const project = compat.makeProject(codeInput.value, state, {
       blockName: blockName.value, blockDescription: blockDesc.value, enableInput: enableInput.checked, allowMultipleInstances: allowMultipleInstances.checked,
       remoteXYEepromOffset: remoteXYMode && remoteXYEepromOffset ? remoteXYEepromOffset.value : '0',
+      remoteXYBidirectional: !!(remoteXYBidirectional && remoteXYBidirectional.checked),
       exportMode: 'professional', targetProfile: 'esp32-arduino-' + getCoreVersion()
     });
     const filename = (blockName.value || 'block').replace(/[^A-Za-z0-9_-]/g, '_') + '.i2u.json';
@@ -441,7 +448,8 @@
     if (!remoteXYMode || !remoteXYPreview || parsedSource !== codeInput.value) return;
     try {
       const built = window.buildRemoteXYUbi(codeInput.value, blockName.value.trim() || 'RemoteXY', {
-        eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+        eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0,
+          bidirectional: remoteXYBidirectional ? remoteXYBidirectional.checked : true
       });
       remoteXYPreview['setup()'].body = built.setupCode;
       renderFunctions();
@@ -450,6 +458,9 @@
     }
   }
   if (remoteXYEepromOffset) remoteXYEepromOffset.addEventListener('input', refreshRemoteXYEepromPreview);
+  if (remoteXYBidirectional) remoteXYBidirectional.addEventListener('change', function () {
+    if (remoteXYMode && parsedSource === codeInput.value) btnParse.click();
+  });
 
   function renderFunctions() {
     funcBody.innerHTML = '';
@@ -504,7 +515,8 @@
       try {
         if (getCoreVersion() !== '2.0.17') throw new Error('RemoteXY: выберите ESP32 Core 2.0.17.');
         const built = window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY', {
-          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0,
+          bidirectional: remoteXYBidirectional ? remoteXYBidirectional.checked : true
         });
         state = built.state;
         remoteXYMode = true;
@@ -706,7 +718,8 @@
       const result = remoteXYMode ? window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY', {
         description: blockDesc.value,
         aliases: Object.fromEntries(Object.entries(state.variables).map(([key, v]) => [key, v.alias])),
-        eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+        eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0,
+          bidirectional: remoteXYBidirectional ? remoteXYBidirectional.checked : true
       }) : window.ino2ubiProfessional.build({
         template,
         name: blockName.value.trim() || 'Custom Block',

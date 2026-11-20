@@ -261,6 +261,19 @@
       vars.remoteXYCloudToken = { type: 'String', role: 'parameter', alias: 'Cloud token', default: data.connection.token, position: order++ };
     }
     data.sections.input.forEach(f => add(f, 'output'));
+    // Optional two-way synchronization: FLProg/web clients submit a new value
+    // on the rising edge of <field>_apply; no continuous overwrite of phone input.
+    const bidirectional = options.bidirectional === true;
+    if (bidirectional) {
+      const reservedNames = new Set([...data.sections.input, ...data.sections.output, ...data.sections.complex, ...data.sections.other].map(f => f.name));
+      for (const f of data.sections.input) {
+        for (const suffix of ['_set', '_apply']) {
+          if (reservedNames.has(f.name + suffix)) fail('RemoteXY: конфликт имени контакта ' + f.name + suffix);
+        }
+        add({name: f.name + '_set', kind: f.kind, type: f.type, length: f.length}, 'input');
+        add({name: f.name + '_apply', kind: 'binary', type: 'uint8_t'}, 'input');
+      }
+    }
     data.sections.output.forEach(f => add(f, 'input'));
     // FLProg signals are external to the native packed RemoteXY struct.
     // A rising edge sends one message; keeping the input HIGH cannot spam the queue.
@@ -385,6 +398,28 @@
     }
     const fullSetup = setup + eepromSetup + nvsSetup;
     const loop = ['RemoteXYEngine.handler();'];
+    if (bidirectional) {
+      for (const f of data.sections.input) {
+        const trigger = f.name + '_apply';
+        const setValue = f.name + '_set';
+        const member = 'remoteXYBridgeData.' + nativeMember(f.name);
+        const previous = 'remoteXYBridgePrevApply_' + f.name;
+        staticDecls.push('bool ' + previous + ' = false;');
+        if (f.kind === 'text') {
+          // RemoteXY char array has fixed width. Leave NUL termination and
+          // avoid chopping UTF-8 inside a multibyte codepoint.
+          loop.push('if (' + trigger + ' && !' + previous + ') { String rxValue = String(' + setValue + ');' +
+            ' size_t rxLen = rxValue.length(); if (rxLen >= ' + f.length + ') {' +
+            ' rxLen = ' + (f.length - 1) + '; while (rxLen > 0 && ((uint8_t)rxValue[rxLen] & 0xC0) == 0x80) --rxLen; }' +
+            ' memset(' + member + ', 0, ' + f.length + '); memcpy(' + member + ', rxValue.c_str(), rxLen); }');
+        } else if (f.kind === 'binary') {
+          loop.push('if (' + trigger + ' && !' + previous + ') ' + member + ' = ' + setValue + ' ? 1 : 0;');
+        } else {
+          loop.push('if (' + trigger + ' && !' + previous + ') ' + member + ' = ' + setValue + ';');
+        }
+        loop.push(previous + ' = ' + trigger + ';');
+      }
+    }
     for (const field of data.sections.complex) {
       if (/^RemoteXYType_(?:Notification|NotificationNet|Terminal)$/.test(field.type)) {
         const trigger = field.name + '_send';
@@ -457,6 +492,7 @@
     const description = 'RemoteXY — ' + name + '\n' +
       'ESP32 / Arduino Core 2.0.17 / RemoteXY 4.1.11. Режим: ' + modeInfo + '\n' +
       'Данные от телефона = выходы FLProg, данные на телефон = входы FLProg.\n' +
+      (bidirectional ? 'Двустороннее управление: для каждого поля входы имя_set и имя_apply (фронт 0->1); имя — выход текущего значения. Изменение телефона и FLProg отражается в общем состоянии и Preferences.\n' : '') +
       'Кнопки/переключатели = Bool, числовые поля = соответствующий числовой тип, текст char[N] = String (не более N-1 байт UTF-8). Неопознанные Byte остаются Byte.\n' +
       'Notification/Terminal: входы имя_send (импульс по фронту) и имя_text (String); Time: выходы имя_utc (Unix, секунды, uint32) и имя_valid.\n' +
       'Только один такой блок RemoteXY в проекте. Не переключает режим автоматически, не запускает WiFi.begin(), WiFi.mode(), WiFi.softAP().\n' +
