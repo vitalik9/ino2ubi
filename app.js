@@ -41,6 +41,7 @@
   const diagnosticsEl = document.getElementById('esp32Diagnostics');
   const btnClear = document.getElementById('btnClear');
   const btnParse = document.getElementById('btnParse');
+  const btnParseRemoteXY = document.getElementById('btnParseRemoteXY');
   const btnGenerate = document.getElementById('btnGenerate');
   const blockName = document.getElementById('blockName');
   const blockDesc = document.getElementById('blockDesc');
@@ -59,13 +60,13 @@
   const allowMultipleInstances = document.getElementById('allowMultipleInstances');
   // Единственный формат экспорта — Code Professional.
   const formatHelp = document.getElementById('formatHelp');
-  const remoteXYNotSupported = 'RemoteXY пока не поддерживается в Code Professional. Экспорт отключён.';
   const remoteXYEepromBox = document.getElementById('remoteXYEepromBox');
   const remoteXYEepromOffset = document.getElementById('remoteXYEepromOffset');
   const remoteXYEepromStatus = document.getElementById('remoteXYEepromStatus');
   function showRemoteXYEeprom(data) {
     if (!remoteXYEepromBox) return;
-    const hasSaved = !!(data && data.eeprom && data.eeprom.requiredSize);
+    const hasNetNotification = !!(data && data.sections && data.sections.complex && data.sections.complex.some(f => f.type === 'RemoteXYType_NotificationNet'));
+    const hasSaved = !!(data && data.eeprom && (data.eeprom.requiredSize || hasNetNotification));
     remoteXYEepromBox.hidden = !data;
     const label = document.getElementById('remoteXYEepromOffsetLabel');
     if (label) label.hidden = !hasSaved;
@@ -75,8 +76,8 @@
     }
     if (hasSaved) {
       remoteXYEepromOffset.max = String(4096 - data.eeprom.requiredSize);
-      remoteXYEepromStatus.textContent = 'Сохраняемые поля: ' + data.eeprom.savedFields.join(', ') +
-        '. Требуется ' + data.eeprom.requiredSize + ' байт EEPROM (без смещения).';
+      remoteXYEepromStatus.textContent = 'Сохраняемые поля: ' + (data.eeprom.savedFields.join(', ') || 'системные ключи интернет-уведомлений') +
+        '. Размер EEPROM определяется библиотекой при запуске; убедитесь, что достаточно памяти и нет конфликтов с другими блоками.';
     } else if (data) {
       remoteXYEepromStatus.textContent = data.eeprom.protocol === 'legacy' ?
         'Старый формат RemoteXY V19: отметок EEPROM в массиве нет. Выберите «Сохранять в EEPROM» в редакторе для нужных полей и получите новый Arduino-код.' :
@@ -225,7 +226,11 @@
     try {
       let result;
       if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
-        result = { errors: [remoteXYNotSupported], warnings: [] };
+        if (getCoreVersion() !== '2.0.17') throw new Error('RemoteXY адаптер проверяется только для ESP32 Core 2.0.17.');
+        const built = window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY', {
+          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+        });
+        result = remoteXYChecks(built.data);
       } else {
         const parsed = parsedSource === code ? state : window.parseArduinoCode(code);
         result = runChecks(code, parsed);
@@ -332,6 +337,14 @@
   });
 
   coreSelect.addEventListener('change', function () {
+    if (remoteXYMode) {
+      parsedSource = null;
+      remoteXYMode = false;
+      remoteXYPreview = null;
+      showRemoteXYEeprom(null);
+      setStatus('Версия Core изменена. Повторите парсинг RemoteXY (поддерживается 2.0.17).', true);
+      return;
+    }
     if (parsedSource && parsedSource === codeInput.value) {
       const checks = runChecks(codeInput.value, state);
       showEsp32Diagnostics(checks, codeInput.value);
@@ -459,6 +472,21 @@
     });
   }
 
+  // Dedicated RemoteXY action. Keep the existing auto-detection of RemoteXY
+  // in the general parser so old workflows and saved projects still work.
+  if (btnParseRemoteXY) btnParseRemoteXY.addEventListener('click', function () {
+    const code = codeInput.value;
+    if (!/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
+      const message = code.trim()
+        ? 'Не найдена RemoteXY_CONF_PROGMEM. Вставьте полный Arduino-код из редактора RemoteXY.'
+        : 'Вставьте или откройте Arduino-код, созданный редактором RemoteXY.';
+      showEsp32Diagnostics({ errors: [message], warnings: [] }, code);
+      setStatus('RemoteXY: ' + message, true);
+      return;
+    }
+    btnParse.click();
+  });
+
   btnParse.addEventListener('click', function () {
     var code = codeInput.value;
     if (!code.trim()) {
@@ -471,8 +499,36 @@
     // GUI structure and FLProg-owned Wi-Fi, not ordinary #define processing.
     if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
       remoteXYMode = false;
+      remoteXYPreview = null;
       parsedSource = null;
-      setStatus(remoteXYNotSupported, true);
+      try {
+        if (getCoreVersion() !== '2.0.17') throw new Error('RemoteXY: выберите ESP32 Core 2.0.17.');
+        const built = window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY', {
+          eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+        });
+        state = built.state;
+        remoteXYMode = true;
+        remoteXYPreview = {
+          'setup()': { name: 'setup', returnType: 'void', params: '', body: built.setupCode },
+          'loop()': { name: 'loop', returnType: 'void', params: '', body: built.loopCode }
+        };
+        parsedSource = code;
+        blockDesc.value = built.description;
+        allowMultipleInstances.checked = false;
+        enableInput.checked = false;
+        showRemoteXYEeprom(built.data);
+        renderVariables(); renderFunctions();
+        showEsp32Diagnostics(remoteXYChecks(built.data), code);
+        setStatus('RemoteXY распознан: контактов ' + Object.keys(state.variables).length + '. Code Professional доступен.');
+      } catch (e) {
+        remoteXYMode = false;
+        remoteXYPreview = null;
+        state = { variables: {}, functions: {}, global_includes: [], defines: [], extra_declarations: [], static_declarations: [] };
+        renderVariables(); renderFunctions();
+        showRemoteXYEeprom(null);
+        showEsp32Diagnostics({ errors: [e.message], warnings: [] }, code);
+        setStatus('RemoteXY: ' + e.message, true);
+      }
       return;
     }
     remoteXYMode = false;
@@ -502,7 +558,9 @@
       var f = Object.keys(state.functions).length;
       var inc = (state.global_includes || []).length;
       var def = (state.defines || []).length;
-      const check = runChecks(code, state);
+      if (remoteXYMode && (allowMultipleInstances.checked || enableInput.checked || getCoreVersion() !== '2.0.17'))
+        throw new Error('RemoteXY поддерживает один экземпляр, без En, только ESP32 Core 2.0.17.');
+      const check = remoteXYMode ? remoteXYChecks(window.parseRemoteXYWiFi(code)) : runChecks(code, state);
       showEsp32Diagnostics(check, code);
       setStatus('Найдено: переменных ' + v + ', функций ' + f + ', #include ' + inc + ', #define ' + def +
         '. Ошибок: ' + check.errors.length,
@@ -626,16 +684,14 @@
       setStatus('Вставьте код Arduino.', true);
       return;
     }
-    if (/\bRemoteXY_CONF_PROGMEM\b/.test(code)) {
-      setStatus(remoteXYNotSupported, true);
-      return;
-    }
     if (parsedSource !== code) {
       setStatus('Сначала нажмите «Парсить код» (после изменений тоже).', true);
       return;
     }
     try {
-      const check = runChecks(code, state);
+      if (remoteXYMode && (allowMultipleInstances.checked || enableInput.checked || getCoreVersion() !== '2.0.17'))
+        throw new Error('RemoteXY поддерживает один экземпляр, без En, только ESP32 Core 2.0.17.');
+      const check = remoteXYMode ? remoteXYChecks(window.parseRemoteXYWiFi(code)) : runChecks(code, state);
       showEsp32Diagnostics(check, code);
       if (check.errors.length) {
         setStatus('Исправьте ошибки перед экспортом: ' + check.errors.join(' '), true);
@@ -647,7 +703,11 @@
         throw new Error('Генератор Code Professional не загружен.');
       btnGenerate.disabled = true;
       setStatus('Генерация Code Professional…');
-      const result = window.ino2ubiProfessional.build({
+      const result = remoteXYMode ? window.buildRemoteXYUbi(code, blockName.value.trim() || 'RemoteXY', {
+        description: blockDesc.value,
+        aliases: Object.fromEntries(Object.entries(state.variables).map(([key, v]) => [key, v.alias])),
+        eepromOffset: remoteXYEepromOffset ? remoteXYEepromOffset.value : 0
+      }) : window.ino2ubiProfessional.build({
         template,
         name: blockName.value.trim() || 'Custom Block',
         description: blockDesc.value,

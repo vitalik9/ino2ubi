@@ -38,6 +38,7 @@
             <button type="button" id="btnSaveProject" class="btn btn-secondary" title="Сохранить настройки ролей и редактирование как проект .i2u.json">Сохранить проект</button>
             <button type="button" id="btnClear" class="btn btn-secondary">Очистить</button>
             <button type="button" id="btnParse" class="btn btn-primary">Парсить код</button>
+            <button type="button" id="btnParseRemoteXY" class="btn btn-secondary" title="Разобрать .ino, созданный редактором RemoteXY">Парсить RemoteXY</button>
             <label class="core-label" for="coreVersion">ESP32 Core <select id="coreVersion" aria-label="Версия ESP32 Arduino Core"><option value="2.0.17" selected>2.0.17</option><option value="3.3.11">3.3.11</option></select></label>
             <button type="button" id="btnCheckEsp32" class="btn btn-secondary">Проверить ESP32</button>
           </div>
@@ -86,6 +87,12 @@
           </div>
         </div>
 
+        <div id="remoteXYEepromBox" class="settings" hidden>
+          <h3>RemoteXY EEPROM</h3>
+          <p id="remoteXYEepromStatus" class="hint"></p>
+          <label id="remoteXYEepromOffsetLabel" for="remoteXYEepromOffset" hidden>Смещение EEPROM</label>
+          <input id="remoteXYEepromOffset" type="number" value="0" min="0" max="4096" hidden>
+        </div>
         <div class="settings">
           <h3>Настройки блока</h3>
           <div class="field">
@@ -127,11 +134,11 @@
         <details class="full-guide" open>
           <summary><strong>Code Professional — инструкция</strong></summary>
           <p>Конвертер создаёт один .ubi в формате Code Professional для FLProg.</p>
-          <p>Вставьте или откройте .ino, нажмите «Парсить код», проверьте входы, выходы и параметры, затем «Сгенерировать Code Professional .ubi».</p>
+          <p>Вставьте или откройте .ino, нажмите «Парсить код» (или «Парсить RemoteXY» для интерфейса RemoteXY), проверьте входы, выходы и параметры, затем «Сгенерировать Code Professional .ubi».</p>
           <p>Маркеры: <code>// in</code> — вход; <code>// out</code> — выход; <code>// par: Описание</code> — параметр; <code>// variable</code> — внутренняя переменная.</p>
           <p>Галочка «Использовать блок несколько раз» управляет разрешением на повторное размещение блока в проекте FLProg и проверками изоляции C++ состояния.</p>
           <p>Для сохранения правок используйте «Сохранить проект» (.i2u.json). Старые проекты Basic можно открывать, но экспорт всегда создаётся в Professional.</p>
-          <p>RemoteXY пока не поддерживается в формате Professional. Проверка в браузере не заменяет импорт и компиляцию в FLProg.</p>
+          <p>RemoteXY: экспериментальный импорт Wi-Fi, AP и Cloud для Core 2.0.17 с RemoteXY 4.1.11; поддерживаются комплексные элементы Notification, Terminal и RealTime. Входы *_send (фронт импульса) и *_text (String) отправляют сообщения. Интернет-уведомления требуют PRO, EEPROM и доступа в Интернет; один экземпляр, без En. Обязательно проверьте компиляцию в FLProg.</p>
           <p>Целевая среда: FLProg 9.8.6 / ESP32 Arduino Core 2.0.17 (по умолчанию; переключатель 2.0.17 / 3.3.11 рядом с кнопкой «Проверить ESP32»). Диагностика не заменяет компиляцию в FLProg.</p>
         </details>
         <details class="ai-guide-v7" id="aiGuideV7">
@@ -899,6 +906,7 @@ j) испытать на реальной плате запуск, остано�
   <script src="compat.js"></script>
   <script src="esp32.js"></script>
   <script src="diagnostics.js"></script>
+  <script src="remotexy.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

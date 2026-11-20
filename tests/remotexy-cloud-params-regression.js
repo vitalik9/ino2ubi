@@ -1,0 +1,27 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert'),path=require('path');
+const ctx={console};ctx.window=ctx;
+ctx.ino2ubiProfessionalTemplate='<template/>';
+ctx.ino2ubiProfessional={build(args){
+ const vars=args.state.variables;
+ assert.strictEqual(vars.remoteXYCloudServer.role,'parameter');
+ assert.strictEqual(vars.remoteXYCloudToken.role,'parameter');
+ assert.strictEqual(vars.remoteXYCloudPort.role,'parameter');
+ assert.strictEqual(vars.remoteXYCloudPort.type,'uint16_t');
+ assert.strictEqual(vars.remoteXYCloudServer.default,'');
+ assert.strictEqual(vars.remoteXYCloudToken.default,'');
+ assert.strictEqual(vars.remoteXYCloudPort.default,'6376');
+ assert(!JSON.stringify(args).includes('SECRET_WIFI_NAME'));
+ assert(!JSON.stringify(args).includes('SECRET_WIFI_PASS'));
+ assert(!args.setupCode.includes('WiFi.begin('));
+ assert(args.setupCode.includes('WiFi.status()'));
+ assert(args.setupCode.includes('remoteXYCloudServer'));
+ assert(args.setupCode.includes('remoteXYCloudToken'));
+ assert(args.setupCode.includes('remoteXYCloudPort'));
+ assert(args.setupCode.includes('remoteXYBridgeCloudServerStorage.c_str()'));
+ return {xml:'<sixx/>', filename:'Cloud',hpp:''};
+}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','remotexy.js'),'utf8'),ctx);
+const src=`#define REMOTEXY_MODE__WIFI_CLOUD\n#define REMOTEXY_WIFI_SSID "SECRET_WIFI_NAME"\n#define REMOTEXY_WIFI_PASSWORD "SECRET_WIFI_PASS"\n#define REMOTEXY_CLOUD_SERVER ""\n#define REMOTEXY_CLOUD_PORT 6376\n#define REMOTEXY_CLOUD_TOKEN ""\n#include <RemoteXY.h>\nuint8_t const PROGMEM RemoteXY_CONF_PROGMEM[] = {255,1,0,0,0,3,0,1,0,3};\nstruct {\n// input variables\nuint8_t button_01;\n// other variable\nuint8_t connect_flag;\n} RemoteXY;`;
+ctx.buildRemoteXYUbi(src,'Cloud parameters');
+console.log('PASS RemoteXY external Wi-Fi + editable Cloud parameters');
