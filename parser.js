@@ -354,27 +354,45 @@ function parseGlobalSection(globalSection, functions) {
     return 'String'; // macro expression / symbolic constant is not a numeric default
   }
 
-  // A human-readable FLProg label may follow the role marker on the same line.
-  // The C++ identifier remains unchanged in generated code and code tags.
-  // Optional FLProg radio-button options: // par: Mode | choices: 0=Off; 1=Auto
+  // Parameter metadata in the trailing role comment:
+  // float value = 1.0f; // par: Русское название | description: Подробное пояснение
+  // For radio parameters, choices and description may appear in either order.
+  function parameterMetadata(line) {
+    const match = String(line || '').match(/\/\/\s*(?:par|parameter)\b\s*(?::|[-–—])\s*(.*)$/i);
+    if (!match) return {alias:'', description:'', choices:null};
+    const fragments = match[1].split(/\s+\|\s+(?=(?:choices|description)\s*:)/i);
+    const alias = fragments.shift().trim();
+    let description = '';
+    let choices = null;
+    for (const fragment of fragments) {
+      const meta = fragment.match(/^\s*(choices|description)\s*:\s*([\s\S]*)$/i);
+      if (!meta) continue;
+      if (meta[1].toLowerCase() === 'description') {
+        description = meta[2].trim();
+      } else {
+        const entries = meta[2].split(';').map(x => x.trim()).filter(Boolean);
+        if (entries.length < 2) throw new Error('Список choices должен содержать минимум два варианта.');
+        choices = entries.map(entry => {
+          const pair = entry.match(/^([^=]+)=(.+)$/);
+          if (!pair) throw new Error('Неверный вариант choices: ' + entry + '. Используйте значение=Подпись.');
+          return {value:pair[1].trim(), label:pair[2].trim()};
+        });
+      }
+    }
+    return {alias, description, choices};
+  }
   function parameterChoices(line) {
-    const match = String(line || '').match(/\/\/\s*(?:par|parameter)\b[^\r\n]*?\|\s*choices\s*:\s*(.*)$/i);
-    if (!match) return null;
-    const entries = match[1].split(';').map(s => s.trim()).filter(Boolean);
-    if (entries.length < 2) throw new Error('Список choices должен содержать минимум два варианта.');
-    return entries.map(entry => {
-      const pair = entry.match(/^([^=]+)=(.+)$/);
-      if (!pair) throw new Error('Неверный вариант choices: ' + entry + '. Используйте значение=Подпись.');
-      return {value:pair[1].trim(), label:pair[2].trim()};
-    });
+    return parameterMetadata(line).choices;
+  }
+  function parameterDescription(line) {
+    return parameterMetadata(line).description;
   }
   function roleLabel(line, role) {
-    const token = role === 'parameter' ? '(?:par|parameter)' : role === 'input' ? '(?:in|input)' : role === 'output' ? '(?:out|output)' : null;
+    if (role === 'parameter') return parameterMetadata(line).alias;
+    const token = role === 'input' ? '(?:in|input)' : role === 'output' ? '(?:out|output)' : null;
     if (!token) return '';
     const match = line.match(new RegExp('\\/\\/\\s*' + token + '\\b\\s*(?::|[-–—])\\s*(.+)$', 'i'));
-    // Explanatory comments are not necessarily valid C++ pin identifiers.
-    // Keep the original source variable name in that case.
-    const candidate = match ? match[1].split(/\s*\|\s*choices\s*:/i)[0].trim() : '';
+    const candidate = match ? match[1].trim() : '';
     return /^[A-Za-z_][A-Za-z_0-9]*$/.test(candidate) ? candidate : '';
   }
 
@@ -397,7 +415,7 @@ function parseGlobalSection(globalSection, functions) {
     const role = /\/\/\s*(?:par|parameter)\b/i.test(rest) ? 'parameter' : 'global';
     const value = maskComments(rest).trim();
     defines.push({ name, value, role, type: inferDefineType(value), alias: roleLabel(line, role) || name,
-      raw: stripped.replace(/\s*\/\/.*$/, '').trimEnd(), choices:role==='parameter'?parameterChoices(line):null, position: lineOffset });
+      raw: stripped.replace(/\s*\/\/.*$/, '').trimEnd(), choices:role==='parameter'?parameterChoices(line):null, description:role==='parameter'?parameterDescription(line):'', position: lineOffset });
     lineOffset += line.length + 1;
   });
 
@@ -490,6 +508,7 @@ function parseGlobalSection(globalSection, functions) {
           qualifiers: qualifierText.trim(),
           alias: roleLabel(lineText, role) || varName,
           choices: role === 'parameter' ? parameterChoices(lineText) : null,
+          description: role === 'parameter' ? parameterDescription(lineText) : '',
           position: startIdx
         };
       });

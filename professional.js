@@ -176,7 +176,7 @@
       const p=ard(items,null,'UserCodeMultiBlockStandartParametr');
       logicalId(p);
       core(p,'name','String',info.alias || name);
-      core(p,'description','String','');
+      core(p,'description','String',info.description || '');
       core(p,'conditionType','Symbol','none');
       dataType(p,info.type);
       const value = validateParameterDefault(name, info);
@@ -467,7 +467,7 @@
       if (['input','output'].includes(v.role)) b.inputOutput(inst,n,v);
       if (v.role==='parameter') b.parameter(inst,n,v);
     }
-    const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value,alias:d.alias||d.name,choices:d.choices||null}:d);
+    const defines=(state.defines||[]).map(d=>d.role==='parameter'?{name:d.name,role:'parameter',type:d.type||'String',default:d.value,alias:d.alias||d.name,choices:d.choices||null,description:d.description||''}:d);
     // FIX30: a #define and a declared C++ variable with the same identifier
     // cannot silently be interpreted as two different FLProg sources.
     // Reject collisions before writing any .ubi XML.
