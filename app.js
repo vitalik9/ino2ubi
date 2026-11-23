@@ -148,22 +148,14 @@
   function showEsp32Diagnostics(result, code) {
     diagnosticsEl.textContent = '';
     const enriched = window.ino2ubiDiagnostics.enrich(code, { errors: result.errors || [], warnings: result.warnings || [], infos: result.infos || [] });
-    // forDisplay only hides duplicates already explained by a more specific item; counts match the cards shown.
-    const issues = window.ino2ubiDiagnostics.forDisplay(code, enriched);
-    const count = severity => issues.filter(item => item.severity === severity).length;
-    diagnosticsEl.hidden = false;
+    // Keep all diagnostics running internally, but display only actionable errors.
+    const issues = window.ino2ubiDiagnostics.forDisplay(code, enriched)
+      .filter(item => item.severity === 'error');
+    diagnosticsEl.hidden = issues.length === 0;
+    if (!issues.length) return;
     const heading = document.createElement('strong');
-    heading.textContent = 'Проверка ino2ubi / ESP32 Core ' + getCoreVersion() + ': ' +
-      count('error') + ' ошибок, ' + count('warning') + ' предупреждений' +
-      (count('info') ? ', ' + count('info') + ' информационных сообщений' : '');
+    heading.textContent = 'Проверка ino2ubi / ESP32 Core ' + getCoreVersion() + ': ' + issues.length + ' ошибок';
     diagnosticsEl.appendChild(heading);
-    if (!issues.length) {
-      const ok = document.createElement('p');
-      ok.className = 'diagnostic-ok';
-      ok.textContent = 'Известных несовместимостей не обнаружено. Это не заменяет компиляцию в FLProg.';
-      diagnosticsEl.appendChild(ok);
-      return;
-    }
     const list = document.createElement('div');
     list.className = 'diagnostic-list';
     for (const issue of issues) {
@@ -171,7 +163,7 @@
       item.className = 'diagnostic-item diagnostic-' + issue.severity;
       const label = document.createElement('div');
       label.className = 'diagnostic-message';
-      label.textContent = (issue.severity === 'warning' ? 'Предупреждение: ' : (issue.severity === 'info' ? 'Информация: ' : 'Ошибка: ')) + issue.message;
+      label.textContent = 'Ошибка: ' + issue.message;
       item.appendChild(label);
       if (issue.line !== null) {
         const jump = document.createElement('button');
@@ -741,7 +733,6 @@
       downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), result.filename + '.ubi');
       setStatus('Файл ' + result.filename + '.ubi создан.' +
         (result.dependencies.length ? ' Проверьте локальные заголовки: ' + result.dependencies.join(', ') + '.' : '') +
-        (result.warnings.length ? ' Зависимости: ' + result.warnings.join(' ') : '') +
         ' Проверьте импорт и компиляцию в FLProg.');
     } catch (e) {
       setStatus('Ошибка Code Professional: ' + e.message, true);
